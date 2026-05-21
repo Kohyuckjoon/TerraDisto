@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-feature android:name="android.hardware.location.gps" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        android:name=".distosdkapp.DistoApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Base.Theme.TerraDisto">
+        <meta-data
+            android:name="com.google.android.actions"
+            android:resource="@xml/file_provider_paths" />
+        <service
+            android:name=".distosdkapp.CleanupService"
+            android:exported="false"
+            android:label="CleanupService" />
+
+        <activity android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".distosdkapp.activities.SearchDevicesActivity"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait">
+
+        </activity>
+        <activity
+            android:name=".distosdkapp.activities.BleInformationActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:screenOrientation="sensorPortrait" />
+        <activity
+            android:name=".distosdkapp.activities.YetiInformationActivity"
+            android:configChanges="orientation|keyboardHidden|keyboard"
+            android:screenOrientation="sensorPortrait" />
+        <activity
+            android:name=".distosdkapp.activities.WifiInformationActivity"
+            android:screenOrientation="sensorLandscape" />
+        <activity
+            android:name=".distosdkapp.activities.Wifi3DInformationActivity"
+            android:screenOrientation="sensorLandscape" />
+        <activity
+            android:name=".distosdkapp.activities.RndisInformationActivity"
+            android:screenOrientation="sensorLandscape" />
+        <activity android:name=".distosdkTest.TestActivity" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
+    </application>
+
+</manifest>

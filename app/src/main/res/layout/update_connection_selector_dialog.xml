@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:orientation="vertical" >
+
+
+    <TextView
+        android:id="@+id/info_txt"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="10dp"
+
+        android:text=""
+        android:scrollbars = "vertical"
+        android:textColor="@android:color/black"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:layout_alignParentTop="true"/>
+
+
+
+
+    <LinearLayout
+        android:id="@+id/buttons1_layout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_above="@+id/buttons2_layout"
+        android:background="@android:color/white"
+        android:orientation="horizontal"
+        android:weightSum="1">
+
+        <Button
+            android:id="@+id/updateOnline_btn"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:background="@android:color/white"
+            android:clickable="true"
+            android:text="@string/online"
+            android:textColor="#5DBCD2"
+            android:textStyle="bold"
+            android:layout_weight="0.5"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/updateOffline_btn"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:background="@android:color/white"
+            android:clickable="true"
+            android:text="Offline"
+            android:textColor="#5DBCD2"
+            android:textStyle="bold"
+            android:layout_weight="0.5"/>
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/buttons2_layout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_alignParentBottom="true"
+        android:background="@android:color/white"
+        android:orientation="horizontal"
+        android:weightSum="1">
+
+
+        <Button
+            android:id="@+id/cancel_btn"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginStart="5dp"
+            android:background="@android:color/white"
+            android:clickable="true"
+            android:text="@string/cancel"
+            android:textColor="#5DBCD2"
+            android:textStyle="bold"
+            android:layout_weight="0.5"
+            android:focusable="true" />
+    </LinearLayout>
+
+
+</RelativeLayout>

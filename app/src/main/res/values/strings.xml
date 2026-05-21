@@ -1,0 +1,160 @@
+<resources>
+    <string name="app_name">TerraDisto</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="Bluetooth">블루투스</string>
+    <string name="Disto_Connect">DISTO 연결</string>
+    <string name="plz_select_disto">연결할 DISTO를 선택해주세요</string>
+    <string name="CAM_Connect">카메라 연결</string>
+    <string name="survey_diameter">관경 측정</string>
+    <string name="Searched_device">검색된 장치</string>
+
+    <string name="select_device_to_connect">Select Device to Connect</string>
+    <string name="start_search">Start Search</string>
+    <string name="finding_devices">장치 연결</string>
+    <string name="listview_no_matches">No Matches</string>
+    <string name="version">Version:</string>
+    <!--  DIALOGS  -->
+    <string name="ok_ui">OK</string>
+    <string name="cancel_ui">Cancel</string>
+    <string name="close_ui">Close</string>
+    <!--  VIEWPORT  -->
+    <string name="up_arrow_ui">▲</string>
+    <string name="right_arrow_ui">▶</string>
+    <string name="down_arrow_ui">▼</string>
+    <string name="left_arrow_ui">◀</string>
+    <string name="zoom1_ui">1x</string>
+    <string name="zoom2_ui">2x</string>
+    <string name="zoom4_ui">4x</string>
+    <string name="zoom8_ui">8x</string>
+    <string-array name="Entries_ui">
+        <item>L</item>
+        <item>N</item>
+        <item>M</item>
+        <item>H</item>
+    </string-array>
+    <string name="default_value" />
+    <!-- Buttons  -->
+    <string name="clear_btn">Clear</string>
+    <string name="read_btn">Read</string>
+    <string name="send_command_btn">Send command</string>
+    <string name="distance_btn">Distance</string>
+    <string name="start_tracking_btn">Start tracking</string>
+    <string name="stop_tracking_btn">Stop tracking</string>
+    <string name="start_live_image_btn">Start Live Image</string>
+    <string name="stop_live_image_btn">Stop Live Image</string>
+    <string name="device_info_btn">DEVICE INFORMATION</string>
+    <string name="reinstall_btn">Reinstall</string>
+    <!--  Information Activity  -->
+    <string name="model_name">ModelName:</string>
+    <string name="measurements_lbl">Measurements:</string>
+    <string name="reconnecting">Reconnecting</string>
+    <string name="lostConnection">Lost connection to deviceDummy</string>
+    <string name="distance_lbl">Distance:</string>
+    <string name="distance_unit_lbl">Distance Unit:</string>
+    <string name="status_txt">Status:</string>
+    <string name="model">Model:</string>
+    <!-- wifi Labels  -->
+    <string name="software_version_lbl">SV:</string>
+    <string name="serialnumber_lbl">SN:</string>
+    <string name="vertical_angle_with_tilt_lbl">Vertical Angle:</string>
+    <string name="horizontal_angle_with_tilt_lbl">Horizontal Angle:</string>
+    <string name="horizontal_angle_without_tilt_lbl">H. Angle Not corrected:</string>
+    <string name="vertical_angle_without_tilt_lbl">V. Angle Not corrected:</string>
+    <string name="angleunit_lbl">Angle Unit:</string>
+    <string name="hz_temp_lbl">hz_temp:</string>
+    <string name="v_temp_lbl">v_temp:</string>
+    <string name="edm_temp_lbl">edm_temp:</string>
+    <string name="ble_temp_lbl">ble_temp:</string>
+    <string name="bat_v_lbl">bat_v:</string>
+    <string name="led_se_lbl">led_se:</string>
+    <string name="led_w_lbl">led_w:</string>
+    <string name="iHZ_lbl">iHZ:</string>
+    <string name="iLen_lbl">iLen:</string>
+    <string name="iCross_lbl">iCross:</string>
+    <string name="macaddress_lbl">Mac Address:</string>
+    <string name="wlanmoduleversion_lbl">WLAN Module Version:</string>
+    <string name="wlanchannel_lbl">WLAN Channel:</string>
+    <string name="wlanfreq_lbl">WLAN Frequency:</string>
+    <string name="wlanessid_lbl">WLAN SSID:</string>
+    <string name="usrvind_lbl">usr vind:</string>
+    <string name="isensitivemode_lbl">isensitive mode:</string>
+    <string name="usercamlasx_lbl">user camlasX:</string>
+    <string name="usercamlasy_lbl">user_camlasy:</string>
+    <string name="htime_lbl">Operating Hours:</string>
+    <string name="swname_lbl">Software Name:</string>
+    <string name="device_type_lbl">Device Type: </string>
+    <string name="equipment_lbl">Equipment:</string>
+    <string name="face_lbl">face:</string>
+    <string name="motwhile_lbl">Mot While:</string>
+    <string name="hztemp_lbl">hz Temp:</string>
+    <string name="vtemp_lbl">V Temp:</string>
+    <string name="edmtemp_lbl">EDM Temp:</string>
+    <string name="bletemp_lbl">BLE Temp:</string>
+    <string name="batv_lbl">Battery Voltage:</string>
+    <string name="bats_lbl">Battery State:</string>
+    <string name="ledse_lbl">LED se:</string>
+    <string name="ledw_lbl">LED w:</string>
+    <string name="ip_lbl">IP:</string>
+    <string name="camera_feed_lbl">Camera Feed:</string>
+    <string name="event_lbl">Event:</string>
+    <string name="horizontal_angle_lbl">Horizontal Angle:</string>
+    <string name="custom_command_lbl">Custom Command:</string>
+    <string name="DeviceResponse_lbl">Response: </string>
+    <!--  ble Labels  -->
+    <string name="direction_lbl">Direction:</string>
+    <string name="direction_unit_lbl">Direction Unit:</string>
+    <string name="inclination_lbl">Inclination:</string>
+    <string name="inclination_unit_lbl">Inclination Unit:</string>
+    <!--  Yeti  -->
+    <!--  Yeti Titles  -->
+    <string name="basic_measurements_lbl">BASIC:</string>
+    <string name="ptop_measurements_lbl">P2P:</string>
+    <string name="quaternion_measurements_lbl">QUATERNION:</string>
+    <string name="acceleration_and_rotation_measurements_lbl">ACCELERATION AND ROTATION:</string>
+    <string name="magnetometer_measurements_lbl">MAGNETOMETER:</string>
+    <string name="channels_lbl">DISTOCOM CHANNELS:</string>
+    <string name="device_info_lbl">DEVICE INFO:</string>
+    <string name="brand_distocom_lbl">Brand:</string>
+    <string name="id_distocom_lbl">Device ID:</string>
+    <string name="sw_version_app_distocom_lbl">APP Version:</string>
+    <string name="sw_version_edm_distocom_lbl">EDM Version:</string>
+    <string name="sw_version_fta_distocom_lbl">FTA Version:</string>
+    <string name="serial_app_distocom_lbl">Serial APP:</string>
+    <string name="serial_edm_distocom_lbl">Serial EDM:</string>
+    <string name="serial_fta_distocom_lbl">Serial FTA:</string>
+    <!--  Yeti Labels  -->
+    <string name="timestamp_lbl">TimeStamp:</string>
+    <string name="hz_angle_lbl">HZAngle:</string>
+    <string name="ve_angle_lbl">VeAngle:</string>
+    <string name="inclination_status_lbl">InclinationStatus:</string>
+    <string name="magnetometer_x_lbl">Magnetometer_X:</string>
+    <string name="magnetometer_y_lbl">Magnetometer_Y:</string>
+    <string name="magnetometer_z_lbl">Magnetometer_Z:</string>
+    <string name="quaternion_w_lbl">Quaternion_W:</string>
+    <string name="quaternion_x_lbl">Quaternion_X:</string>
+    <string name="quaternion_y_lbl">Quaternion_Y:</string>
+    <string name="quaternion_z_lbl">Quaternion_Z:</string>
+    <string name="rotation_sensitivity_lbl">Rotation Sensitivity:</string>
+    <string name="acc_sensitivity_lbl">AccSensitivity:</string>
+    <string name="acceleration_x_lbl">Acceleration_X:</string>
+    <string name="acceleration_y_lbl">Acceleration_Y:</string>
+    <string name="acceleration_z_lbl">Acceleration_Z:</string>
+    <string name="rotation_x_lbl">Rotation_X:</string>
+    <string name="rotation_y_lbl">Rotation_Y:</string>
+    <string name="rotation_z_lbl">Rotation_Z:</string>
+    <string name="distocom_response_lbl">Response</string>
+    <string name="distocom_event_lbl">Event</string>
+    <!--  DISTO MODELS  -->
+    <string name="D510">D510</string>
+    <!--  UPDATE  -->
+    <string name="update">Update</string>
+    <string name="cancel">Cancel</string>
+    <string name="component">Component</string>
+    <string name="online">Online</string>
+    <string name="image_from_device">Image from Device</string>
+    <string name="image_crosshair">Image Crosshair</string>
+    <string name="device_btn">Device</string>
+    <string name="error_lbl">Error:</string>
+    <string name="save_logs">save logs</string>
+</resources>
