@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.BluetoothDisabled
+import androidx.compose.material.icons.rounded.Construction
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,6 +40,9 @@ fun DistoMainScreen(
     onSurveyClick: () -> Unit,
     onProjectListClick: () -> Unit
 ) {
+    // 스크롤 상태 정의
+    val scrollState = rememberScrollState()
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFFF2F4F6)
@@ -44,7 +50,8 @@ fun DistoMainScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 32.dp)
+                .verticalScroll(scrollState) // 글자가 찌그러지지 않고 자연스럽게 스크롤되도록 변경
+                .padding(horizontal = 24.dp, vertical = 3.dp)
         ) {
             Spacer(modifier = Modifier.height(32.dp))
             HeaderSection(
@@ -79,20 +86,27 @@ fun DistoMainScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 MainActionButton(
-                    title = "측정 시작",
-                    subtitle = "현장 거리 측량 시작",
-                    icon = Icons.Rounded.Add,
-                    containerColor = if (isDistoConnected) Color(0xFF3182F6) else Color(0xFFADB5BD), // 비 연결시에도 버튼은 유지 하되 클릭시 연결 안내를 하거나 색상을 조절함
-                    modifier = Modifier.weight(0.8f), // 측정 시작 강조
+                    title = "간편 측정",
+                    subtitle = "항목 없이 바로 거리만 측정",
+                    icon = Icons.Rounded.Construction,
+                    containerColor = Color(0xFF00B67A),
+                    modifier = Modifier.height(170.dp), //  글자 가독성이 가장 완벽한 높이 확보
                     onClick = {
-                        /**
-                         * 1. 블루투스가 연결된 경우라면 측정 화면
-                         * 2. 블루투스가 연결되지 않은 경우라면 블루투스 연결 화면 이동
-                         */
+                        onSurveyClick()
+                    }
+                )
+
+                MainActionButton(
+                    title = "정밀 측정",
+                    subtitle = "모든 항목 상세 기록하기",
+                    icon = Icons.Rounded.Add,
+                    containerColor = if (isDistoConnected) Color(0xFF3182F6) else Color(0xFFADB5BD),
+                    modifier = Modifier.height(170.dp), //  간편 측정과 대칭을 이루도록 고정 높이 적용
+                    onClick = {
                         if (isDistoConnected) onSurveyClick() else onConnectClick()
                     }
                 )
@@ -102,8 +116,7 @@ fun DistoMainScreen(
                     subtitle = "기록된 측량 내역 확인",
                     icon = Icons.Rounded.BarChart,
                     containerColor = Color(0xFF4E5968),
-                    modifier = Modifier.weight(0.8f),
-                    // 데이터 보기도 프로젝트 리스트 화면으로 연결 (구조적 통일)
+                    modifier = Modifier.height(170.dp), //  일체감을 주는 높이 매핑으로 시각적 안정감 극대화
                     onClick = onProjectListClick
                 )
             }
@@ -118,6 +131,7 @@ fun DistoMainScreen(
         }
     }
 }
+
 
 @Preview(name = "연결 완료 상태", showBackground = true)
 @Composable
