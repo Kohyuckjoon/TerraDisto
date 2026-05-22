@@ -290,12 +290,42 @@ fun SurveyMeasurementScreen(
                 shadowElevation = 20.dp
             ) {
 //                AnimatedContent(targetState = isAtBottom && isFormComplete) { isReadyToSave ->
+                // Save Button
                 AnimatedContent(targetState = isFormComplete) { isReadyToSave ->
                     if (isReadyToSave) {
                         Button(
                             onClick = {
-                                onSaveClick()
-                                Toast.makeText(context, "저장이 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                                coroutineScope.launch {
+                                    try {
+                                        val measurement = com.terra.terradisto.data.MeasurementEntity(
+                                            projectId = currentProjectId,
+                                            manholeType = manholeType,
+                                            lidMaterial = lidMaterial,
+                                            lidSize = lidSize,
+                                            topieValue = topieValue,
+                                            chamberMaterial = chamberMaterial,
+                                            chamberSize = chamberSize,
+                                            selectedChamberShape = selectedChamberShape,
+                                            hasLadder = hasLadder,
+                                            hasInverter = hasInverter,
+                                            anomalyMemo = anomalyMemo,
+                                            pipeList = pipeList,
+                                        )
+
+                                        // DB Insert
+                                        measurementDao.insertMeasurement(measurement)
+
+                                        // 외부 콜백 실행 및 UI 알림
+                                        onSaveClick()
+                                        Toast.makeText(context, "데이터가 성공적으로 저장되었습니다.", Toast.LENGTH_SHORT).show()
+
+                                        // 저장 후 화면 종료
+                                        onBackClick()
+                                    } catch (e: Exception) {
+                                        Log.e("SurveyDiameterScreen", "저장 실패", e)
+                                        Toast.makeText(context, "저장 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

@@ -24,8 +24,11 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FlashOn
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,9 +56,66 @@ fun QuickSurveyScreen(
     var currentDistance by remember { mutableStateOf("0.000") }
     val measurementLog = remember { mutableStateListOf<String>() }
 
+    // 연속 측정 및 피크 감지를 위한 상태들
+    // 연속 측정 및 피크 감지를 위한 상태들
+    var isMeasuring by remember { mutableStateOf(false) }
+    var maxDistance by remember { mutableDoubleStateOf(0.0) }
+    var decreaseCount by remember { mutableIntStateOf(0) }
+    var trendingUp by remember { mutableStateOf(false) }
+    val EPS = 0.002 // 2mm 오차 허용 범위
+
+    // 화면 진입 시 이전 측정값이 남아있지 않도록 제어하는 플래그
+    var isFirstComposition by remember { mutableStateOf(true) }
+
+    // 1. [반복 측정 명령] 1초 간격으로 하드웨어 측정 명령 전송
+    LaunchedEffect(isMeasuring) {
+        if (isMeasuring) {
+            while (isMeasuring) {
+                onMeasureClick()
+                delay(1000) // 1초 대기
+            }
+        }
+    }
+
     LaunchedEffect(distoMeasuredDistance) {
-        if (distoMeasuredDistance.isNotEmpty() && distoMeasuredDistance != "0.000") {
-            measurementLog.add(0, "$distoMeasuredDistance m")
+//        if (distoMeasuredDistance.isNotEmpty() && distoMeasuredDistance != "0.000") {
+//            measurementLog.add(0, "$distoMeasuredDistance m")
+//        }
+
+        // 화면 진입 시 최초 값
+        if (isFirstComposition) {
+            isFirstComposition = false
+            currentDistance = "0.000"
+            return@LaunchedEffect
+        }
+
+        if (!isMeasuring) {
+            // 측정 중이 아닐 때 값이 들어온 경우 (예: 수동 1회 측정 등)
+            if (distoMeasuredDistance.isNotEmpty() && distoMeasuredDistance != "0.000") {
+                currentDistance = distoMeasuredDistance
+            }
+            return@LaunchedEffect
+        }
+
+        val dist = distoMeasuredDistance.toDoubleOrNull() ?: return@LaunchedEffect
+        if (dist <= 0.0) return@LaunchedEffect
+
+        // 현재 값이 기존 최대값보다 큰 경우 (고점 갱신)
+        if (dist > maxDistance + EPS) {
+            maxDistance = dist
+            decreaseCount = 0
+            trendingUp = true
+            currentDistance = distoMeasuredDistance // 화면에는 최대값을 표시
+        }
+        // 고점을 찍은 후 값이 확실히 줄어드는지 감시 (피크를 지났는지 판단)
+        else if (trendingUp && dist < maxDistance - EPS) {
+            decreaseCount++
+            // 2회 연속 감소 시 측정이 끝난 것으로 판단하여 자동 정지
+            if (decreaseCount >= 2) {
+                isMeasuring = false
+                measurementLog.add(0, String.format("%.3f m", maxDistance))
+                currentDistance = String.format("%.3f", maxDistance) // 최종 고점 확정 표시
+            }
         }
     }
 
@@ -135,7 +196,15 @@ fun QuickSurveyScreen(
                             modifier = Modifier
                                 .size(56.dp)
                                 .background(Color.White, CircleShape)
-                                .clickable { measurementLog.clear() },
+                                .clickable {
+                                    // [수정] 모든 상태 초기화
+                                    measurementLog.clear()
+                                    currentDistance = "0.000"
+                                    maxDistance = 0.0
+                                    decreaseCount = 0
+                                    trendingUp = false
+                                    isMeasuring = false
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -163,12 +232,25 @@ fun QuickSurveyScreen(
                                 .background(buttonColor, CircleShape)
                                 .clickable(enabled = isDistoConnected) {
                                     // 기존에 사용하시던 하드웨어 전송 명령 함수(`startMeasurementFor(...)` 등)를 호출하도록 연동합니다.
-                                    onMeasureClick()
+//                                    onMeasureClick()
+                                    if (!isMeasuring) {
+                                        // 측정 시작 시 상태 초기화
+                                        maxDistance = 0.0
+                                        decreaseCount = 0
+                                        trendingUp = false
+                                        currentDistance = "0.000"
+                                        isMeasuring = true
+                                    } else {
+                                        // 측정 수동 정지
+                                        isMeasuring = false
+                                    }
                                 },
+
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.PlayArrow,
+//                                imageVector = Icons.Rounded.PlayArrow,
+                                imageVector = if (isMeasuring) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
                                 contentDescription = "측정",
                                 tint = Color.White,
                                 modifier = Modifier.size(38.dp)
@@ -176,7 +258,8 @@ fun QuickSurveyScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "거리 측정",
+//                            text = "거리 측정",
+                            text = if (isMeasuring) "측정 정지" else "거리 측정",
                             fontSize = 13.sp,
                             color = Color(0xFF191F28),
                             fontWeight = FontWeight.Bold
@@ -274,8 +357,10 @@ fun QuickSurveyScreen(
                                     end = androidx.compose.ui.geometry.Offset(centerX, endY),
                                     strokeWidth = 2.dp.toPx(),
                                     pathEffect = PathEffect.dashPathEffect(
-                                        intervals = floatArrayOf(8f, 6f), // [선의 길이, 공백의 길이]
-                                        phase = laserOffset // 애니메이션 오프셋 적용으로 흐르는 효과
+//                                        intervals = floatArrayOf(8f, 6f), // [선의 길이, 공백의 길이]
+//                                        phase = laserOffset // 애니메이션 오프셋 적용으로 흐르는 효과
+                                        intervals = floatArrayOf(8f, 6f),
+                                        phase = laserOffset
                                     )
                                 )
 
@@ -310,7 +395,8 @@ fun QuickSurveyScreen(
                                             Spacer(modifier = Modifier.weight(1f))
                                             Text(
                                                 // 가짜 리터럴 대신 실제 들어온 기기 측정값(`distoMeasuredDistance`)을 바인딩해 통일감을 높입니다.
-                                                text = "$distoMeasuredDistance m",
+//                                                text = "$distoMeasuredDistance m",
+                                                text = "$currentDistance m",
                                                 color = Color(0xFF64B5F6),
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
@@ -412,7 +498,8 @@ fun QuickSurveyScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "실시간 측정 거리",
+//                            text = "실시간 측정 거리",
+                            text = if (isMeasuring) "피크 감지 측정 중..." else "최종 측정 거리",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF8B95A1)
@@ -423,7 +510,8 @@ fun QuickSurveyScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = distoMeasuredDistance,
+//                                text = distoMeasuredDistance,
+                                text = currentDistance,
                                 fontSize = 54.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Color(0xFF191F28),
@@ -433,7 +521,8 @@ fun QuickSurveyScreen(
                                 text = "m",
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF8B95A1),
+//                                color = Color(0xFF8B95A1),
+                                color = if (isMeasuring) Color(0xFF3182F6) else Color(0xFF8B95A1),
                                 modifier = Modifier.padding(bottom = 10.dp, start = 4.dp)
                             )
                         }

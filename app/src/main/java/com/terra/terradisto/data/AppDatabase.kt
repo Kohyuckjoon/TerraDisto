@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 // entities에 Project 클래스를 등록해야 'projects' 테이블을 인식합니다.
-@Database(entities = [Project::class, MeasurementEntity::class], version = 2, exportSchema = false)
+@Database(entities = [Project::class, MeasurementEntity::class], version = 3, exportSchema = false)
 @TypeConverters(MeasurementConverters::class)
 abstract class AppDatabase : RoomDatabase() {
 

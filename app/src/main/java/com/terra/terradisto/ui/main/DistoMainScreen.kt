@@ -39,7 +39,8 @@ fun DistoMainScreen(
     onCreateProjectClick: () -> Unit,
     onQuickSurveyClick: () -> Unit,
     onSurveyClick: () -> Unit,
-    onProjectListClick: () -> Unit
+    onProjectListClick: () -> Unit,
+    onHistoryClick: () -> Unit
 ) {
     // 스크롤 상태 정의
     val scrollState = rememberScrollState()
@@ -118,7 +119,7 @@ fun DistoMainScreen(
                     icon = Icons.Rounded.BarChart,
                     containerColor = Color(0xFF4E5968),
                     modifier = Modifier.height(170.dp), //  일체감을 주는 높이 매핑으로 시각적 안정감 극대화
-                    onClick = onProjectListClick
+                    onClick = onHistoryClick
                 )
             }
 
@@ -145,7 +146,8 @@ fun PreviewDistoMainScreenConnected() {
             onCreateProjectClick = {},
             onQuickSurveyClick = {},
             onSurveyClick = {},
-            onProjectListClick = {}
+            onProjectListClick = {},
+            onHistoryClick = {}
         )
     }
 }
@@ -161,7 +163,8 @@ fun PreviewDistoMainScreenDisconnected() {
             onCreateProjectClick = {},
             onQuickSurveyClick = {},
             onSurveyClick = {},
-            onProjectListClick = {}
+            onProjectListClick = {},
+            onHistoryClick = {}
         )
     }
 }

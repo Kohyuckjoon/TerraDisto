@@ -18,9 +18,12 @@ data class MeasurementEntity (
     val lidMaterial: String,
     val lidSize: String,
     val topieValue: String,
+    val chamberMaterial: String,
+    val chamberSize: String,
     val selectedChamberShape: String,
     val hasLadder: Boolean,
     val hasInverter: Boolean,
+    val anomalyMemo: String,
 //    val pipeListJson: String,
     val timestamp: Long = System.currentTimeMillis(), // 저장된 시간 기록
     val pipeList: List<PipeUiItem>

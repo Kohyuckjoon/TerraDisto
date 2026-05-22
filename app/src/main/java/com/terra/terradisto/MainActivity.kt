@@ -34,6 +34,7 @@ import com.terra.terradisto.data.AppDatabase
 import com.terra.terradisto.ui.ActiveTarget
 import com.terra.terradisto.ui.ProjectListScreen
 import com.terra.terradisto.ui.SurveyMeasurementScreen
+import com.terra.terradisto.ui.history.MeasureHistoryScreen
 import com.terra.terradisto.ui.main.QuickSurveyScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
 
@@ -69,6 +70,9 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                 // 데이터 베이스로부터 실시간 선택된 프로젝트 상태를 확인(Compose state)
                 val selectedProject by projectViewModel.selectedProject.collectAsState()
 
+                // 프로젝트 미 선택 안내 팝업을 제어하기 위한 상태 변수 추가
+                var showProjectErrorDialog by remember { mutableStateOf(false) }
+
                 val quickDistanceState = remember { mutableStateOf("0.000") }
                 val mainYetiController = remember {
                     com.terra.terradisto.distosdkapp.device.YetiDeviceController(
@@ -100,7 +104,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                     )
                 }
 
-// 🔴 [여기 추가] 화면 진입 시 블루투스 장비 인스턴스 자동 주입 및 바인딩 시점 확보
+// [여기 추가] 화면 진입 시 블루투스 장비 인스턴스 자동 주입 및 바인딩 시점 확보
                 LaunchedEffect(currentScreen) {
                     if (currentScreen == "quick_survey") {
                         val info = com.terra.terradisto.distosdkapp.clipboard.Clipboard.INSTANCE.informationActivityData
@@ -119,6 +123,73 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                     } else {
                         currentScreen = "main"
                     }
+                }
+
+                // 프로젝트 미선택 팝업창
+                if (showProjectErrorDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showProjectErrorDialog = false },
+                        shape = RoundedCornerShape(24.dp), // 토스 특유의 둥글고 세련된 느낌 적용
+                        containerColor = Color.White,
+                        title = {
+                            Text(
+                                text = "선택된 프로젝트가 없어요",
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF191F28) // 토스 주요 다크 그레이
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = "측정 내역을 확인하려면\n프로젝트를 먼저 선택해야 해요.",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF4E5968), // 토스 서브 본문 컬러
+                                lineHeight = 22.sp
+                            )
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showProjectErrorDialog = false
+                                    currentScreen = "project_list" // 🔴 확인 누르면 프로젝트 목록으로 다이렉트 이동
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF3182F6), // 토스 시그니처 블루
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text(
+                                    text = "기존 프로젝트 불러오기",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        },
+                        dismissButton = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "닫기",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF8B95A1), // 가볍게 인지할 취소 텍스트 색상
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { showProjectErrorDialog = false }
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    )
                 }
 
                 AnimatedContent(
@@ -149,10 +220,18 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                 },
                                 onQuickSurveyClick = { currentScreen = "quick_survey" },
                                 onSurveyClick = { currentScreen = "survey" },
-                                onProjectListClick = { currentScreen = "project_list" }
+                                onProjectListClick = { currentScreen = "project_list" },
+                                onHistoryClick = {
+                                    if (selectedProject == null) {
+                                        showProjectErrorDialog = true // 프로젝트가 없으면 토스풍 팝업 개방
+                                    } else {
+                                        currentScreen = "history" // 프로젝트가 있으면 히스토리로 정상 진입
+                                    }
+                                }
                             )
                         }
 
+                        // 간편 측정
                         "quick_survey" -> {
                             QuickSurveyScreen(
                                 isDistoConnected = isDistoConnected,
@@ -166,16 +245,19 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             )
                         }
 
+                        // Disto 연결
                         "connect" -> {
                             NavigationHostWrapper(onBack = { currentScreen = "main" })
                         }
 
+                        // 프로젝트 생성
                         "create_project" -> {
                             // 완료 시 고정된 main이 아니라, 이전 previousScreen 화면으로 이동
                             CreateProjectScreen(onBack = { currentScreen = previousScreen })
 //                            CreateProjectScreen(onBack = { currentScreen = "main" })
                         }
 
+                        // 정밀 측정
                         "survey" -> {
 //                            SurveyMeasurementScreen(onBackClick = { currentScreen = "main" })
                             val context = androidx.compose.ui.platform.LocalContext.current
@@ -189,6 +271,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             )
                         }
 
+                        // 프로젝트 리스트
                         "project_list" -> {
                             ProjectListScreen(
                                 projectViewModel = projectViewModel,
@@ -211,6 +294,21 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                 },
 
                                 onConnectClick = { currentScreen = "connect" }
+                            )
+                        }
+
+                        "history" -> {
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            val db = AppDatabase.getDatabase(context)
+
+                            val selectedProjectId = selectedProject?.id ?: -1L
+                            val historyItems by db.measurementDao()
+                                .getMesurementByProject(selectedProjectId)
+                                .collectAsState(initial = emptyList())
+
+                            MeasureHistoryScreen(
+                                items = historyItems,
+                                onBackClick = { currentScreen = "main" }
                             )
                         }
                     }
@@ -400,7 +498,8 @@ fun DistoMainScreenConnectedPreview() {
             onCreateProjectClick = { },
             onSurveyClick = { },
             onProjectListClick = { }, // 누락된 인자 추가로 에러 방지
-            onQuickSurveyClick = {}
+            onQuickSurveyClick = {},
+            onHistoryClick = {}
         )
     }
 }
@@ -417,6 +516,7 @@ fun DistoMainScreenDisconnectedPreview() {
             onSurveyClick = { },
             onProjectListClick = { },
             onQuickSurveyClick = {},
+            onHistoryClick = {}
         )
     }
 }
