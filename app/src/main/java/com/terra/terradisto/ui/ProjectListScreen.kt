@@ -328,26 +328,3 @@ fun ProjectItemCard(
 //        )
 //    }
 //}
-
-
-@Preview(showBackground = true, device = "spec:width=1080px, height=2340px, dpi=440")
-@Composable
-fun ProjectListScreenPreview() {
-    MaterialTheme {
-        // 실제 앱의 배경색과 맞춤
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = Color(0xFFF2F4F6)
-        ) {
-            // Preview에서는 ViewModel의 로직이 동작하지 않으므로
-            // 실제 프로젝트 리스트가 보이지 않을 수 있습니다.
-            // (ViewModel 내부의 Flow가 초기값 emptyList를 반환하기 때문)
-            ProjectListScreen(
-                onNavigateToSurvey = {},
-                onCreateClick = {},
-                onConnectClick = {}
-                // ViewModel은 기본 파라미터가 있으므로 생략 가능
-            )
-        }
-    }
-}

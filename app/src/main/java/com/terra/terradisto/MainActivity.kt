@@ -31,8 +31,10 @@ import com.terra.terradisto.ui.navigationHostWrapper.NavigationHostWrapper
 import androidx.compose.animation.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.terra.terradisto.data.AppDatabase
+import com.terra.terradisto.ui.ActiveTarget
 import com.terra.terradisto.ui.ProjectListScreen
 import com.terra.terradisto.ui.SurveyMeasurementScreen
+import com.terra.terradisto.ui.main.QuickSurveyScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
 
 interface DistoStatusListener {
@@ -67,6 +69,49 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                 // 데이터 베이스로부터 실시간 선택된 프로젝트 상태를 확인(Compose state)
                 val selectedProject by projectViewModel.selectedProject.collectAsState()
 
+                val quickDistanceState = remember { mutableStateOf("0.000") }
+                val mainYetiController = remember {
+                    com.terra.terradisto.distosdkapp.device.YetiDeviceController(
+                        applicationContext,
+                        object : com.terra.terradisto.distosdkapp.device.YetiDeviceController.YetiDataListener {
+                            override fun onBasicMeasurements_Received(basicData: com.terra.terradisto.distosdkapp.device.YetiDeviceController.BasicData?) {
+                                basicData?.let { data ->
+                                    // 측정된 물리 거리를 상태값에 갱신하여 UI로 전달
+                                    quickDistanceState.value = data.distance ?: "0.000"
+                                }
+                            }
+                            // 나머지 필수 리스너 오버라이드는 공백 유지
+                            override fun onP2PMeasurements_Received(p2pData: com.terra.terradisto.distosdkapp.device.YetiDeviceController.P2PData?) {}
+                            override fun onQuaternionMeasurement_Received(d: com.terra.terradisto.distosdkapp.device.YetiDeviceController.QuaternionData?) {}
+                            override fun onAccRotationMeasurement_Received(d: com.terra.terradisto.distosdkapp.device.YetiDeviceController.AccRotData?) {}
+                            override fun onMagnetometerMeasurement_Received(d: com.terra.terradisto.distosdkapp.device.YetiDeviceController.MagnetometerData?) {}
+                            override fun onDistocomTransmit_Received(d: String?) {}
+                            override fun onDistocomEvent_Received(d: String?) {}
+                            override fun onBrand_Received(d: String?) {}
+                            override fun onAPPSoftwareVersion_Received(d: String?) {}
+                            override fun onId_Received(d: String?) {}
+                            override fun onEDMSoftwareVersion_Received(d: String?) {}
+                            override fun onFTASoftwareVersion_Received(d: String?) {}
+                            override fun onAPPSerial_Received(d: String?) {}
+                            override fun onEDMSerial_Received(d: String?) {}
+                            override fun onFTASerial_Received(d: String?) {}
+                            override fun onModel_Received(d: String?) {}
+                        }
+                    )
+                }
+
+// 🔴 [여기 추가] 화면 진입 시 블루투스 장비 인스턴스 자동 주입 및 바인딩 시점 확보
+                LaunchedEffect(currentScreen) {
+                    if (currentScreen == "quick_survey") {
+                        val info = com.terra.terradisto.distosdkapp.clipboard.Clipboard.INSTANCE.informationActivityData
+                        if (info?.device != null && info.device.deviceType == ch.leica.sdk.Types.DeviceType.Yeti) {
+                            mainYetiController.setCurrentDevice(info.device)
+                            mainYetiController.setListeners()
+                            mainYetiController.checkForReconnection(applicationContext)
+                        }
+                    }
+                }
+
                 // 시스템 뒤로가기 버튼
                 BackHandler(enabled = currentScreen != "main") {
                     if (currentScreen == "create_project") {
@@ -99,12 +144,25 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                 selectedProjectName = selectedProject?.projectName,
                                 onConnectClick = { currentScreen = "connect" },
                                 onCreateProjectClick = {
-                                    // main 화면에서 진입했음을 기록
                                     previousScreen = "main"
                                     currentScreen = "create_project"
-                               },
+                                },
+                                onQuickSurveyClick = { currentScreen = "quick_survey" },
                                 onSurveyClick = { currentScreen = "survey" },
                                 onProjectListClick = { currentScreen = "project_list" }
+                            )
+                        }
+
+                        "quick_survey" -> {
+                            QuickSurveyScreen(
+                                isDistoConnected = isDistoConnected,
+                                // 메인 스코어보드 및 내부 일러스트 텍스트에 실시간 물리 거리 데이터 매핑
+                                distoMeasuredDistance = quickDistanceState.value,
+                                onMeasureClick = {
+                                    // 하드웨어로 레이저 측정 명령 전송 백그라운드 스레드 실행
+                                    Thread { mainYetiController.sendDistanceCommand() }.start()
+                                },
+                                onBackClick = { currentScreen = "main" }
                             )
                         }
 
@@ -181,17 +239,10 @@ fun onCreateProjectClick(onClick: () -> Unit) {
         color = Color.White
     ) {
         Row(
-            modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(20.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color(0xFFE8F3FF), CircleShape),
-
-                )
+            Box(modifier = Modifier.size(48.dp).background(Color(0xFFE8F3FF), CircleShape))
         }
     }
 }
@@ -348,7 +399,8 @@ fun DistoMainScreenConnectedPreview() {
             onConnectClick = { /* 프리뷰에서는 동작하지 않음 */ },
             onCreateProjectClick = { },
             onSurveyClick = { },
-            onProjectListClick = { } // 누락된 인자 추가로 에러 방지
+            onProjectListClick = { }, // 누락된 인자 추가로 에러 방지
+            onQuickSurveyClick = {}
         )
     }
 }
@@ -363,7 +415,8 @@ fun DistoMainScreenDisconnectedPreview() {
             onConnectClick = { },
             onCreateProjectClick = { },
             onSurveyClick = { },
-            onProjectListClick = { }
+            onProjectListClick = { },
+            onQuickSurveyClick = {},
         )
     }
 }

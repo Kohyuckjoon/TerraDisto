@@ -36,7 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class ActiveTarget {
-    NONE, LID_SIZE, TOPI, CHAMBER_SIZE, PIPE_SIZE, PIPE_HEIGHT
+    NONE, LID_SIZE, TOPI, CHAMBER_SIZE, PIPE_SIZE, PIPE_HEIGHT_SIZE
 }
 
 data class PipeUiItem(
@@ -96,7 +96,9 @@ fun SurveyMeasurementScreen(
     var activeTarget by remember { mutableStateOf(ActiveTarget.NONE) }
     var isMeasuring by remember { mutableStateOf(false) }
     var lastDistance by remember { mutableStateOf(Double.NaN) }
+    var maxDistance by remember { mutableStateOf(Double.NEGATIVE_INFINITY) }
     var trendingUp by remember { mutableStateOf(false) }
+    var decreaseCount by remember { mutableStateOf(0) } // 연속 감소 카운트
     val EPS = 0.002
 
     // 이상 상태 유무(메모) 상태 정의
@@ -113,45 +115,68 @@ fun SurveyMeasurementScreen(
             context.applicationContext,
             object : YetiDeviceController.YetiDataListener {
                 override fun onBasicMeasurements_Received(basicData: YetiDeviceController.BasicData?) {
+                    if (!isMeasuring) return
+
                     basicData?.let { data ->
                         val dist = parseDoubleSafe(data.distance)
-                        val formattedValue = "${data.distance} ${data.distanceUnit ?: ""}"
-                        val formattedAngle =
-                            "${data.inclination ?: ""} ${data.inclinationUnit ?: ""}"
 
-                        when (activeTarget) {
-                            ActiveTarget.LID_SIZE -> lidSize = formattedValue
-                            ActiveTarget.TOPI -> topieValue = formattedValue
-                            ActiveTarget.CHAMBER_SIZE -> chamberSize = formattedValue
-                            ActiveTarget.PIPE_SIZE -> {
-                                pipeSize = formattedValue
-                                if (pipeList.isNotEmpty()) {
-                                    pipeList[0].size = formattedValue
+                        // 최대값 비교 로직: 이전 측정값보다 큰 경우에만 UI에 반영
+//                        if (!dist.isNaN() && dist > maxDistance) {
+                        // 최대값 비교 로직 : 이전 최고점보다 큰 경우에만 UI 반영
+                        if (dist > maxDistance + EPS) {
+                            maxDistance = dist
+                            decreaseCount = 0
+                            trendingUp = true
+
+                            val formattedValue = "${data.distance} ${data.distanceUnit ?: ""}"
+                            val formattedAngle = "${data.inclination ?: ""} ${data.inclinationUnit ?: ""}"
+
+                            when (activeTarget) {
+                                ActiveTarget.LID_SIZE -> lidSize = formattedValue
+                                ActiveTarget.TOPI -> topieValue = formattedValue
+                                ActiveTarget.CHAMBER_SIZE -> chamberSize = formattedValue
+                                ActiveTarget.PIPE_SIZE -> {
+                                    pipeSize = formattedValue
+                                    if (pipeList.isNotEmpty()) {
+                                        pipeList[0].size = formattedValue
+                                    }
                                 }
-                            }
-                            ActiveTarget.PIPE_HEIGHT -> {
-                                pipeHeight = formattedAngle
-                                if (pipeList.isNotEmpty()) {
-                                    pipeList[0].height = formattedAngle
+                                ActiveTarget.PIPE_HEIGHT_SIZE -> {
+                                    pipeHeight = formattedValue
+                                    if (pipeList.isNotEmpty()) {
+                                        pipeList[0].height = formattedValue
+                                    }
                                 }
+                                else -> {}
                             }
-                            else -> {}
                         }
+
+                        else if (trendingUp && dist < maxDistance - EPS) {
+                            decreaseCount++
+                            // 2~3회 연속으로 최대값보다 작은 값이 들어오면 측정이 끝난 것으로 판단
+                            if (decreaseCount >= 2) {
+                                isMeasuring = false
+                                buttonTextState.value = "측정 시작"
+                                activeTarget = ActiveTarget.NONE
+                            }
+                        }
+
+                        lastDistance = dist
 
                         // 기존 Java의 '감소 감지 시 정지' 로직 그대로 이식
-                        if (!dist.isNaN()) {
-                            if (lastDistance.isNaN()) {
-                                lastDistance = dist
-                            } else {
-                                if (dist > lastDistance + EPS) {
-                                    trendingUp = true
-                                } else if (trendingUp && dist < lastDistance - EPS) {
-                                    isMeasuring = false
-                                    buttonTextState.value = "측정 시작"
-                                }
-                                lastDistance = dist
-                            }
-                        }
+//                        if (!dist.isNaN()) {
+//                            if (lastDistance.isNaN()) {
+//                                lastDistance = dist
+//                            } else {
+//                                if (dist > lastDistance + EPS) {
+//                                    trendingUp = true
+//                                } else if (trendingUp && dist < lastDistance - EPS) {
+//                                    isMeasuring = false
+//                                    buttonTextState.value = "측정 시작"
+//                                }
+//                                lastDistance = dist
+//                            }
+//                        }
                     }
                 }
 
@@ -205,7 +230,9 @@ fun SurveyMeasurementScreen(
                 isMeasuring = true
                 buttonTextState.value = "측정 정지"
                 lastDistance = Double.NaN
+                maxDistance = Double.NEGATIVE_INFINITY
                 trendingUp = false
+                decreaseCount = 0 // 시작시 초기화
             } else {
                 isMeasuring = false
                 buttonTextState.value = "측정 시작"
@@ -762,8 +789,8 @@ fun SurveyMeasurementScreen(
                                     value = pipeHeight,
                                     onValueChange = { pipeHeight = it },
                                     hasMeasure = true,
-                                    onMeasureClick = { startMeasurementFor(ActiveTarget.PIPE_HEIGHT) },
-                                    buttonText = if (activeTarget == ActiveTarget.PIPE_HEIGHT) buttonTextState.value else "측정 시작"
+                                    onMeasureClick = { startMeasurementFor(ActiveTarget.PIPE_HEIGHT_SIZE) },
+                                    buttonText = if (activeTarget == ActiveTarget.PIPE_HEIGHT_SIZE) buttonTextState.value else "측정 시작"
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -976,7 +1003,9 @@ fun InputField(
                             }
 
                             Button(
-                                onClick = onSelectClick,
+                                onClick = {
+                                    onSelectClick()
+                                },
                                 modifier = Modifier.height(54.dp),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(

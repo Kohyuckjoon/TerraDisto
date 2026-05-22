@@ -37,6 +37,7 @@ fun DistoMainScreen(
     selectedProjectName: String?,
     onConnectClick: () -> Unit,
     onCreateProjectClick: () -> Unit,
+    onQuickSurveyClick: () -> Unit,
     onSurveyClick: () -> Unit,
     onProjectListClick: () -> Unit
 ) {
@@ -96,7 +97,7 @@ fun DistoMainScreen(
                     containerColor = Color(0xFF00B67A),
                     modifier = Modifier.height(170.dp), //  글자 가독성이 가장 완벽한 높이 확보
                     onClick = {
-                        onSurveyClick()
+                        onQuickSurveyClick()
                     }
                 )
 
@@ -142,6 +143,7 @@ fun PreviewDistoMainScreenConnected() {
             selectedProjectName = "강남구 대치동 맨홀",
             onConnectClick = {},
             onCreateProjectClick = {},
+            onQuickSurveyClick = {},
             onSurveyClick = {},
             onProjectListClick = {}
         )
@@ -157,6 +159,7 @@ fun PreviewDistoMainScreenDisconnected() {
             selectedProjectName = null,
             onConnectClick = {},
             onCreateProjectClick = {},
+            onQuickSurveyClick = {},
             onSurveyClick = {},
             onProjectListClick = {}
         )
