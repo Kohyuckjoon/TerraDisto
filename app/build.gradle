@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation libs.firebase.crashlytics.buildtools
+    implementation libs.protolite.well.known.types
     ksp(libs.room.compiler) // 애노테이션 프로세서
 
     implementation libs.appcompat

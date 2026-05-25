@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +38,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class ActiveTarget {
-    NONE, LID_SIZE, TOPI, CHAMBER_SIZE, PIPE_SIZE, PIPE_HEIGHT_SIZE
+//    NONE, LID_SIZE, TOPI, CHAMBER_SIZE, PIPE_SIZE, PIPE_HEIGHT_SIZE
+    NONE, LID_SIZE, TOPI, CHAMBER_SIZE, CHAMBER_WIDTH, CHAMBER_HEIGHT, PIPE_SIZE, PIPE_HEIGHT_SIZE
 }
 
 data class PipeUiItem(
@@ -75,6 +78,8 @@ fun SurveyMeasurementScreen(
     var lidSize by remember { mutableStateOf("") }      // 1. 맨홀 뚜껑 규격
     var topieValue by remember { mutableStateOf("") }   // 2. 토피
     var chamberSize by remember { mutableStateOf("") }  // 3. 변실 규격
+    var chamberWidth by remember { mutableStateOf("") }  // [추가] 사각형 가로
+    var chamberHeight by remember { mutableStateOf("") }
     var pipeSize by remember { mutableStateOf("") }     // 4. 관경
     var pipeHeight by remember { mutableStateOf("") }   // 5. 관 높이
     var lidMaterial by remember { mutableStateOf("") }
@@ -135,6 +140,8 @@ fun SurveyMeasurementScreen(
                                 ActiveTarget.LID_SIZE -> lidSize = formattedValue
                                 ActiveTarget.TOPI -> topieValue = formattedValue
                                 ActiveTarget.CHAMBER_SIZE -> chamberSize = formattedValue
+                                ActiveTarget.CHAMBER_WIDTH -> chamberWidth = formattedValue  // [추가]
+                                ActiveTarget.CHAMBER_HEIGHT -> chamberHeight = formattedValue // [추가]
                                 ActiveTarget.PIPE_SIZE -> {
                                     pipeSize = formattedValue
                                     if (pipeList.isNotEmpty()) {
@@ -304,12 +311,15 @@ fun SurveyMeasurementScreen(
                                             lidSize = lidSize,
                                             topieValue = topieValue,
                                             chamberMaterial = chamberMaterial,
-                                            chamberSize = chamberSize,
+//                                            chamberSize = chamberSize,
+//                                            selectedChamberShape = selectedChamberShape,
+                                            chamberSize = if (selectedChamberShape == "사각형") "${chamberWidth} x ${chamberHeight}" else chamberSize,
                                             selectedChamberShape = selectedChamberShape,
                                             hasLadder = hasLadder,
                                             hasInverter = hasInverter,
                                             anomalyMemo = anomalyMemo,
                                             pipeList = pipeList,
+
                                         )
 
                                         // DB Insert
@@ -549,72 +559,90 @@ fun SurveyMeasurementScreen(
             }
 
             // 변실 재질
-            FormSection(title = "변실", icon = Icons.Rounded.HomeWork) {
+            FormSection(title = "변실 모양", icon = Icons.Rounded.HomeWork) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
+//                    Row (
+//                        modifier = Modifier.fillMaxWidth(),
+//                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+//                    ){
+//                        SelectableBox(
+//                            text = "사각형 (ㅁ)",
+//                            isSelected = selectedChamberShape == "사각형",
+//                            modifier = Modifier.weight(1f),
+//                            onClick = { selectedChamberShape = "사각형" }
+//                        )
+//
+//                        SelectableBox(
+//                            text = "원형 (ㅇ)",
+//                            isSelected = selectedChamberShape == "원형",
+//                            modifier = Modifier.weight(1f),
+//                            onClick = { selectedChamberShape = "원형" }
+//                        )
+//                    }
+
+
                     //1. 재질 레이블 및 드롭다운 선택 필드
+//                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+//                        Text(
+//                            text = "재질",
+//                            fontSize = 13.sp,
+//                            fontWeight =  FontWeight.Bold,
+//                            color = Color(0xFF8B95A1)
+//                        )
+//
+//                        Box {
+//                            Surface (
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .height(56.dp)
+//                                    .clickable { isMaterialExpanded = true },
+//                                color = Color(0xFFF2F4F6),
+//                                shape = RoundedCornerShape(16.dp)
+//                            ){
+//                                Row (
+//                                    modifier = Modifier
+//                                        .fillMaxSize()
+//                                        .padding(horizontal = 16.dp),
+//                                    verticalAlignment = Alignment.CenterVertically,
+//                                    horizontalArrangement = Arrangement.SpaceBetween
+//                                ){
+//                                    Text(
+//                                        text = chamberMaterial.ifEmpty { "선택하세요" },
+//                                        fontSize = 16.sp,
+//                                        fontWeight = FontWeight.Medium,
+//                                        color = Color(0xFF191F28)
+//                                    )
+//                                    Icon(
+//                                        imageVector = Icons.Rounded.ArrowDropDown,
+//                                        contentDescription = "재질 선택",
+//                                        tint = Color(0xFF4E5968),
+//                                        modifier = Modifier.size(24.dp)
+//                                    )
+//                                }
+//                            }
+//
+//                            DropdownMenu(
+//                                expanded = isMaterialExpanded,
+//                                onDismissRequest = { isMaterialExpanded = false },
+//                                modifier = Modifier.fillMaxWidth(0.9f).background(Color.White)
+//                            ) {
+//                                val materials = listOf("콘크리트", "벽돌", "기타")
+//                                // 💡 [해결] 중복 할당 제거 및 람다 변수명 충돌 버그 수정
+//                                materials.forEach { item ->
+//                                    DropdownMenuItem(
+//                                        text = { Text(item, fontSize = 15.sp, color = Color(0xFF191F28)) },
+//                                        onClick = {
+//                                            chamberMaterial = item
+//                                            isMaterialExpanded = false
+//                                        }
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(
-                            text = "재질",
-                            fontSize = 13.sp,
-                            fontWeight =  FontWeight.Bold,
-                            color = Color(0xFF8B95A1)
-                        )
-
-                        Box {
-                            Surface (
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                                    .clickable { isMaterialExpanded = true },
-                                color = Color(0xFFF2F4F6),
-                                shape = RoundedCornerShape(16.dp)
-                            ){
-                                Row (
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ){
-                                    Text(
-                                        text = chamberMaterial.ifEmpty { "선택하세요" },
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFF191F28)
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Rounded.ArrowDropDown,
-                                        contentDescription = "재질 선택",
-                                        tint = Color(0xFF4E5968),
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-
-                            DropdownMenu(
-                                expanded = isMaterialExpanded,
-                                onDismissRequest = { isMaterialExpanded = false },
-                                modifier = Modifier.fillMaxWidth(0.9f).background(Color.White)
-                            ) {
-                                val materials = listOf("콘크리트", "벽돌", "기타")
-                                // 💡 [해결] 중복 할당 제거 및 람다 변수명 충돌 버그 수정
-                                materials.forEach { item ->
-                                    DropdownMenuItem(
-                                        text = { Text(item, fontSize = 15.sp, color = Color(0xFF191F28)) },
-                                        onClick = {
-                                            chamberMaterial = item
-                                            isMaterialExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Column (
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ){
                         Text(
                             text = "규격",
                             fontSize = 13.sp,
@@ -622,93 +650,244 @@ fun SurveyMeasurementScreen(
                             color = Color(0xFF8B95A1)
                         )
 
-                        Row (
+                        // 1. 모양 선택 (사각형/원형)
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ){
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(56.dp),
-                                color = Color(0xFFF2F4F6),
-                                shape = RoundedCornerShape(16.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            SelectableBox(
+                                text = "사각형 (ㅁ)",
+                                isSelected = selectedChamberShape == "사각형",
+                                modifier = Modifier.weight(1f),
+                                onClick = { selectedChamberShape = "사각형" }
+                            )
+
+                            SelectableBox(
+                                text = "원형 (ㅇ)",
+                                isSelected = selectedChamberShape == "원형",
+                                modifier = Modifier.weight(1f),
+                                onClick = { selectedChamberShape = "원형" }
+                            )
+                        }
+
+                        // 2. 모양에 따른 입력 UI 분기
+                        if (selectedChamberShape == "사각형") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (chamberSize.isEmpty()) {
-                                        Text(
-                                            text = "예: 1200 x 1200",
-                                            color = Color(0xFFB0B8C1),
-                                            fontSize = 16.sp
-                                        )
+                                // 가로 입력 필드
+                                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Surface(modifier = Modifier.weight(1f).height(56.dp), color = Color(0xFFF2F4F6), shape = RoundedCornerShape(16.dp)) {
+                                        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                                            if (chamberWidth.isEmpty()) Text("가로", color = Color(0xFFB0B8C1), fontSize = 14.sp)
+                                            BasicTextField(value = chamberWidth, onValueChange = { chamberWidth = it }, textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF191F28)), modifier = Modifier.fillMaxWidth())
+                                        }
                                     }
-                                    // 수기 입력을 위한 BasicTextField
-                                    BasicTextField(
-                                        value = chamberSize,
-                                        onValueChange = { chamberSize = it },
-                                        textStyle = androidx.compose.ui.text.TextStyle(
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF191F28)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                                    IconButton(
+                                        onClick = { startMeasurementFor(ActiveTarget.CHAMBER_WIDTH) },
+                                        modifier = Modifier.size(40.dp).background(if (activeTarget == ActiveTarget.CHAMBER_WIDTH) Color(0xFFFF4D4F) else Color(0xFF3182F6), CircleShape)
+                                    ) {
+                                        Icon(Icons.Rounded.Straighten, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+
+                                Text("x", color = Color(0xFF8B95A1), fontWeight = FontWeight.Bold)
+
+                                // 세로 입력 필드
+                                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Surface(modifier = Modifier.weight(1f).height(56.dp), color = Color(0xFFF2F4F6), shape = RoundedCornerShape(16.dp)) {
+                                        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                                            if (chamberHeight.isEmpty()) Text("세로", color = Color(0xFFB0B8C1), fontSize = 14.sp)
+                                            BasicTextField(value = chamberHeight, onValueChange = { chamberHeight = it }, textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF191F28)), modifier = Modifier.fillMaxWidth())
+                                        }
+                                    }
+                                    IconButton(
+                                        onClick = { startMeasurementFor(ActiveTarget.CHAMBER_HEIGHT) },
+                                        modifier = Modifier.size(40.dp).background(if (activeTarget == ActiveTarget.CHAMBER_HEIGHT) Color(0xFFFF4D4F) else Color(0xFF3182F6), CircleShape)
+                                    ) {
+                                        Icon(Icons.Rounded.Straighten, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    }
                                 }
                             }
-
-                            Button(
-                                onClick = { startMeasurementFor(ActiveTarget.CHAMBER_SIZE) },
-                                modifier = Modifier.height(56.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (activeTarget == ActiveTarget.CHAMBER_SIZE) Color(0xFFFF4D4F) else Color(0xFF3182F6),
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(horizontal = 20.dp)
+                        } else {
+                            // 원형 선택 시: 기존 단일 규격 필드
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Straighten, // 자(Measurement) 아이콘 매핑
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (activeTarget == ActiveTarget.CHAMBER_SIZE) buttonTextState.value else "측정",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(56.dp),
+                                    color = Color(0xFFF2F4F6),
+                                    shape = RoundedCornerShape(16.dp)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+                                        if (chamberSize.isEmpty()) Text("예: 1200", color = Color(0xFFB0B8C1), fontSize = 16.sp)
+                                        BasicTextField(value = chamberSize, onValueChange = { chamberSize = it }, textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF191F28)), modifier = Modifier.fillMaxWidth())
+                                    }
+                                }
+                                Button(
+                                    onClick = { startMeasurementFor(ActiveTarget.CHAMBER_SIZE) },
+                                    modifier = Modifier.height(56.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (activeTarget == ActiveTarget.CHAMBER_SIZE) Color(0xFFFF4D4F) else Color(0xFF3182F6),
+                                        contentColor = Color.White
+                                    )
+                                ) {
+                                    Icon(Icons.Rounded.Straighten, null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(text = if (activeTarget == ActiveTarget.CHAMBER_SIZE) buttonTextState.value else "측정", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
+
+//                    Column (
+//                        verticalArrangement = Arrangement.spacedBy(6.dp)
+//                    ){
+//                        Text(
+//                            text = "규격",
+//                            fontSize = 13.sp,
+//                            fontWeight = FontWeight.Bold,
+//                            color = Color(0xFF8B95A1)
+//                        )
+//
+//                        if (selectedChamberShape == "사각형") {
+//                            // [추가] 사각형 선택 시: 가로, 세로 두 개의 입력 필드 표시
+//                            Row(
+//                                modifier = Modifier.fillMaxWidth(),
+//                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                                verticalAlignment = Alignment.CenterVertically
+//                            ) {
+//                                // 가로 필드
+//                                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+//                                    Surface(modifier = Modifier.weight(1f).height(56.dp), color = Color(0xFFF2F4F6), shape = RoundedCornerShape(16.dp)) {
+//                                        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+//                                            if (chamberWidth.isEmpty()) Text("가로", color = Color(0xFFB0B8C1), fontSize = 14.sp)
+//                                            BasicTextField(value = chamberWidth, onValueChange = { chamberWidth = it }, textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF191F28)), modifier = Modifier.fillMaxWidth())
+//                                        }
+//                                    }
+//                                    IconButton(onClick = { startMeasurementFor(ActiveTarget.CHAMBER_WIDTH) }, modifier = Modifier.size(40.dp).background(if (activeTarget == ActiveTarget.CHAMBER_WIDTH) Color(0xFFFF4D4F) else Color(0xFF3182F6), CircleShape)) {
+//                                        Icon(Icons.Rounded.Straighten, null, tint = Color.White, modifier = Modifier.size(18.dp))
+//                                    }
+//                                }
+//
+//                                Text("x", color = Color(0xFF8B95A1), fontWeight = FontWeight.Bold)
+//
+//                                // 세로 필드
+//                                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+//                                    Surface(modifier = Modifier.weight(1f).height(56.dp), color = Color(0xFFF2F4F6), shape = RoundedCornerShape(16.dp)) {
+//                                        Box(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+//                                            if (chamberHeight.isEmpty()) Text("세로", color = Color(0xFFB0B8C1), fontSize = 14.sp)
+//                                            BasicTextField(value = chamberHeight, onValueChange = { chamberHeight = it }, textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF191F28)), modifier = Modifier.fillMaxWidth())
+//                                        }
+//                                    }
+//                                    IconButton(onClick = { startMeasurementFor(ActiveTarget.CHAMBER_HEIGHT) }, modifier = Modifier.size(40.dp).background(if (activeTarget == ActiveTarget.CHAMBER_HEIGHT) Color(0xFFFF4D4F) else Color(0xFF3182F6), CircleShape)) {
+//                                        Icon(Icons.Rounded.Straighten, null, tint = Color.White, modifier = Modifier.size(18.dp))
+//                                    }
+//                                }
+//                            }
+//                        } else {
+//                            // 원형 선택 시: 기존 단일 필드 유지
+//                            Row (
+//                                modifier = Modifier.fillMaxWidth(),
+//                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                                verticalAlignment = Alignment.CenterVertically
+//                            ){
+//                                // ... (기존 원형 규격 입력 필드 및 버튼 코드 유지)
+//                            }
+//                        }
+//
+//                        Row (
+//                            modifier = Modifier.fillMaxWidth(),
+//                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                            verticalAlignment = Alignment.CenterVertically
+//                        ){
+//                            Surface(
+//                                modifier = Modifier
+//                                    .weight(1f)
+//                                    .height(56.dp),
+//                                color = Color(0xFFF2F4F6),
+//                                shape = RoundedCornerShape(16.dp)
+//                            ) {
+//                                Box(
+//                                    modifier = Modifier
+//                                        .fillMaxSize()
+//                                        .padding(horizontal = 16.dp),
+//                                    contentAlignment = Alignment.CenterStart
+//                                ) {
+//                                    if (chamberSize.isEmpty()) {
+//                                        Text(
+//                                            text = "예: 1200 x 1200",
+//                                            color = Color(0xFFB0B8C1),
+//                                            fontSize = 16.sp
+//                                        )
+//                                    }
+//                                    // 수기 입력을 위한 BasicTextField
+//                                    BasicTextField(
+//                                        value = chamberSize,
+//                                        onValueChange = { chamberSize = it },
+//                                        textStyle = androidx.compose.ui.text.TextStyle(
+//                                            fontSize = 16.sp,
+//                                            fontWeight = FontWeight.Medium,
+//                                            color = Color(0xFF191F28)
+//                                        ),
+//                                        modifier = Modifier.fillMaxWidth()
+//                                    )
+//                                }
+//                            }
+//
+//                            Button(
+//                                onClick = { startMeasurementFor(ActiveTarget.CHAMBER_SIZE) },
+//                                modifier = Modifier.height(56.dp),
+//                                shape = RoundedCornerShape(16.dp),
+//                                colors = ButtonDefaults.buttonColors(
+//                                    containerColor = if (activeTarget == ActiveTarget.CHAMBER_SIZE) Color(0xFFFF4D4F) else Color(0xFF3182F6),
+//                                    contentColor = Color.White
+//                                ),
+//                                contentPadding = PaddingValues(horizontal = 20.dp)
+//                            ) {
+//                                Icon(
+//                                    imageVector = Icons.Rounded.Straighten, // 자(Measurement) 아이콘 매핑
+//                                    contentDescription = null,
+//                                    modifier = Modifier.size(18.dp)
+//                                )
+//                                Spacer(modifier = Modifier.width(6.dp))
+//                                Text(
+//                                    text = if (activeTarget == ActiveTarget.CHAMBER_SIZE) buttonTextState.value else "측정",
+//                                    fontSize = 15.sp,
+//                                    fontWeight = FontWeight.Bold
+//                                )
+//                            }
+//                        }
+//                    }
                 }
             }
 
             // 5. 변실
-            FormSection(title = "변실 모양", icon = Icons.Rounded.HomeWork) {
-                Row (
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ){
-                    SelectableBox(
-                        text = "사각형 (ㅁ)",
-                        isSelected = selectedChamberShape == "사각형",
-                        modifier = Modifier.weight(1f),
-                        onClick = { selectedChamberShape = "사각형" }
-                    )
-
-                    SelectableBox(
-                        text = "원형 (ㅇ)",
-                        isSelected = selectedChamberShape == "원형",
-                        modifier = Modifier.weight(1f),
-                        onClick = { selectedChamberShape = "원형" }
-                    )
-                }
-            }
+//            FormSection(title = "변실 모양", icon = Icons.Rounded.HomeWork) {
+//                Row (
+//                    modifier = Modifier.fillMaxWidth(),
+//                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+//                ){
+//                    SelectableBox(
+//                        text = "사각형 (ㅁ)",
+//                        isSelected = selectedChamberShape == "사각형",
+//                        modifier = Modifier.weight(1f),
+//                        onClick = { selectedChamberShape = "사각형" }
+//                    )
+//
+//                    SelectableBox(
+//                        text = "원형 (ㅇ)",
+//                        isSelected = selectedChamberShape == "원형",
+//                        modifier = Modifier.weight(1f),
+//                        onClick = { selectedChamberShape = "원형" }
+//                    )
+//                }
+//            }
 
             // 5. 사다리 인버터 유무
             FormSection(title = "사다리 인버터 유무", icon = Icons.Rounded.HomeWork) {

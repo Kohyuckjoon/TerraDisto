@@ -38,15 +38,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.terra.terradisto.data.MeasurementEntity
+import kotlin.text.format
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun MeasureHistoryItem(
     item: MeasurementEntity,
     onDeleteClick: (MeasurementEntity) -> Unit,
     onEditClick: (MeasurementEntity) -> Unit,
-//    onMenuClick: () -> Unit
 ){
     var expanded by remember { mutableStateOf(false) }
+
+    // 타임 스탬프 추가
+    val formattedDate = remember(item.timestamp) {
+        // com.google.type.Date 대신 java.util.Date(또는 그냥 Date) 사용
+        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(item.timestamp))
+    }
 
     Card (
         shape = RoundedCornerShape(20.dp),
@@ -62,7 +71,37 @@ fun MeasureHistoryItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ){
-                Text(text = "MH-${item.id.toString().padStart(3, '0')}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+//                Text(text = "MH-${item.id.toString().padStart(3, '0')}", )
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f) // 제목이 길어질 경우 대비
+                ){
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp) // 동그라미 크기
+                            .background(
+                                color = Color(0xFFE8F3FF), // 연한 파란색 배경 (이미지 느낌)
+                                shape = androidx.compose.foundation.shape.CircleShape // 완벽한 원형
+                            )
+                    ) {
+                        Text(
+                            text = item.id.toString().padStart(3, '0'), // 001, 002 형식으로 패딩
+                            color = Color(0xFF1B64DA), // 진한 파란색 글자
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "${item.id}번 측정 데이터",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp)
+                }
+
+
+
 
                 //  토스 스타일의 직관적인 수정/삭제 팝업 메뉴 컴포넌트 마운트
                 Box {
@@ -145,22 +184,43 @@ fun MeasureHistoryItem(
                 }
             }
 
-            Text(text = "2026-04-22 14:30", style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF8B95A1)))
+            Text(
+                text = formattedDate,
+                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF8B95A1))
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoBlock("맨홀 타입", item.manholeType, Modifier.weight(1f))
-                InfoBlock("심도", "${item.chamberSize} m", Modifier.weight(1f))
+                InfoBlock("심도", "${item.topieValue} mm", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row (modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)){
-                InfoBlock("직경", "${item.lidSize} m", Modifier.weight(1f))
-                if (item.selectedChamberShape == "사각형") {
-                    InfoBlock("세로", "${item.lidMaterial} m", Modifier.weight(1f))
-                } else {
+//            Row (modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)){
+//                InfoBlock("직경", "${item.lidSize} m", Modifier.weight(1f))
+//                if (item.selectedChamberShape == "사각형") {
+//                    InfoBlock("세로", "${item.lidMaterial} m", Modifier.weight(1f))
+//                } else {
+//                    Spacer(modifier = Modifier.weight(1f))
+//                }
+//            }
+
+            if (item.selectedChamberShape == "사각형") {
+                // "1200 x 800" 형태의 문자열을 잘라서 사용
+                val dimensions = item.chamberSize.split(" x ")
+                val width = dimensions.getOrNull(0) ?: "-"
+                val height = dimensions.getOrNull(1) ?: "-"
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    InfoBlock("가로", "$width mm", Modifier.weight(1f))
+                    InfoBlock("세로", "$height mm", Modifier.weight(1f))
+                }
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    InfoBlock("직경", "${item.chamberSize} mm", Modifier.weight(1f))
+                    // 원형일 때는 우측 공간을 비워둠
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }

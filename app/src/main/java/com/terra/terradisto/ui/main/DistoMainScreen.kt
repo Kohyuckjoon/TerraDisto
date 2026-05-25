@@ -95,10 +95,11 @@ fun DistoMainScreen(
                     title = "간편 측정",
                     subtitle = "항목 없이 바로 거리만 측정",
                     icon = Icons.Rounded.Construction,
-                    containerColor = Color(0xFF00B67A),
+                    containerColor = if (isDistoConnected) Color(0xFF00B67A) else Color(0xFFADB5BD),
                     modifier = Modifier.height(170.dp), //  글자 가독성이 가장 완벽한 높이 확보
                     onClick = {
-                        onQuickSurveyClick()
+                        /* 블루투스 연결된 상태면 간편 측정 화면, 미 연결 상태면 Disto 화면으로 이동 */
+                        if (isDistoConnected) onQuickSurveyClick() else onConnectClick()
                     }
                 )
 

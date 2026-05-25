@@ -152,7 +152,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             Button(
                                 onClick = {
                                     showProjectErrorDialog = false
-                                    currentScreen = "project_list" // 🔴 확인 누르면 프로젝트 목록으로 다이렉트 이동
+                                    currentScreen = "project_list" // 확인 누르면 프로젝트 목록으로 다이렉트 이동
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
