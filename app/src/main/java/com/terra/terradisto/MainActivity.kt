@@ -37,6 +37,7 @@ import com.terra.terradisto.ui.SurveyMeasurementScreen
 import com.terra.terradisto.ui.history.MeasureHistoryScreen
 import com.terra.terradisto.ui.main.QuickSurveyScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
+import kotlinx.coroutines.delay
 
 interface DistoStatusListener {
     fun onStatusChanged(isConnected: Boolean)
@@ -46,12 +47,38 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
 
     private val viewModel: DistoConnectViewModel by viewModels()
     private val distoViewModel: com.terra.terradisto.ui.viewModel.DistoViewModel by viewModels()
+    private val projectViewModel: ProjectViewModel by viewModels() // 프로젝트 상태를 앱 전체 유지
+    private var findDevices: com.terra.terradisto.distosdkapp.device.FindDevices? = null
 
-    // 프로젝트 상태를 앱 전체 유지
-    private val projectViewModel: ProjectViewModel by viewModels()
+    override fun onStatusChanged(isConnected: Boolean) {
+        runOnUiThread {
+            viewModel.updateConnectionStatus(isConnected)
+            distoViewModel.updateConnectionState(isConnected)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        findDevices = com.terra.terradisto.distosdkapp.device.FindDevices(applicationContext, object : com.terra.terradisto.distosdkapp.device.AvailableDevicesListener {
+            override fun onAvailableDeviceFound() {}
+            override fun onAvailableDevicesChanged(devices: MutableList<ch.leica.sdk.Devices.Device>?) {
+                devices?.forEach { device ->
+                    // [핵심] 수동 연결 없이 기기 전원만 켰을 때, SDK가 'Connected' 상태라면 Clipboard에 즉시 주입
+                    if (device.connectionState == ch.leica.sdk.Devices.Device.ConnectionState.connected) {
+                        val info = com.terra.terradisto.distosdkapp.clipboard.InformationActivityData(
+                            device, null, ch.leica.sdk.Devices.DeviceManager.getInstance(applicationContext)
+                        )
+                        com.terra.terradisto.distosdkapp.clipboard.Clipboard.INSTANCE.informationActivityData = info
+                        onStatusChanged(true)
+                    }
+                }
+            }
+        })
+
+        findDevices?.registerReceivers()
+
+
         setContent {
             /**
              * Android Java / XML / Activity / Fragment 사용시 -> XML 교체 방식
@@ -65,7 +92,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                 var previousScreen by remember { mutableStateOf("main") }
 
                 // SDK 연동용 상태 값(Disto SDK)
-                val isDistoConnected = viewModel.isDistoConnected
+//                val isDistoConnected = viewModel.isDistoConnected
 
                 // 데이터 베이스로부터 실시간 선택된 프로젝트 상태를 확인(Compose state)
                 val selectedProject by projectViewModel.selectedProject.collectAsState()
@@ -100,21 +127,62 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             override fun onEDMSerial_Received(d: String?) {}
                             override fun onFTASerial_Received(d: String?) {}
                             override fun onModel_Received(d: String?) {}
+                        },
+                        null,
+                        object : com.terra.terradisto.distosdkapp.device.DeviceStatusListener {
+                            override fun onConnectionStateChanged(deviceId: String?, state: ch.leica.sdk.Devices.Device.ConnectionState?) {
+                                val isConnected = state == ch.leica.sdk.Devices.Device.ConnectionState.connected
+
+                                onStatusChanged(isConnected)
+
+                                // 뷰모델에 연결 상태 전달
+                                distoViewModel.updateConnectionState(isConnected)
+                            }
+
+                            // [수정] 인터페이스 명세에 맞춰 오버라이드 (경로 수정 시 자동으로 매칭됨)
+                            override fun onStatusChange(status: String?) {}
+                            override fun onReconnect() {}
+                            override fun onError(code: Int, message: String?) {}
                         }
                     )
                 }
 
-// [여기 추가] 화면 진입 시 블루투스 장비 인스턴스 자동 주입 및 바인딩 시점 확보
-                LaunchedEffect(currentScreen) {
-                    if (currentScreen == "quick_survey") {
+                // 앱 실행 시 또는 메인 화면에 있을때 연결 상태를 주기적으로 확인 및 초기화
+                LaunchedEffect(Unit) {
+                    while(true) {
+                        // 1. 이미 시스템에 블루투스로 연결된 장치가 있는지 SDK에 강제로 물어봄
+                        findDevices?.requestConnectedDevices()
+
                         val info = com.terra.terradisto.distosdkapp.clipboard.Clipboard.INSTANCE.informationActivityData
-                        if (info?.device != null && info.device.deviceType == ch.leica.sdk.Types.DeviceType.Yeti) {
-                            mainYetiController.setCurrentDevice(info.device)
+                        val device = info?.device
+                        val actualConnected = device?.connectionState == ch.leica.sdk.Devices.Device.ConnectionState.connected
+
+                        // 2. [중요] 실제 하드웨어 상태와 우리 앱의 ViewModel 상태를 강제로 일치시킴
+                        if (viewModel.isDistoConnected != actualConnected) {
+                            onStatusChanged(actualConnected)
+                        }
+
+                        // 3. 기기가 연결되어 있다면 컨트롤러에 주입하고 리스너(측정 데이터 수신) 활성화
+                        if (device != null && actualConnected) {
+                            mainYetiController.setCurrentDevice(device)
                             mainYetiController.setListeners()
-                            mainYetiController.checkForReconnection(applicationContext)
+                        }
+                        delay(2000) // 2초마다 상태 체크하여 즉각 반응 보장
+                    }
+                }
+
+                // 화면 전환 시에도 리스너를 다시 붙여 끊김 방지
+                LaunchedEffect(currentScreen) {
+                    val info = com.terra.terradisto.distosdkapp.clipboard.Clipboard.INSTANCE.informationActivityData
+                    info?.device?.let { device ->
+                        if (device.connectionState == ch.leica.sdk.Devices.Device.ConnectionState.connected) {
+                            mainYetiController.setCurrentDevice(device)
+                            mainYetiController.setListeners()
                         }
                     }
                 }
+
+
 
                 // 시스템 뒤로가기 버튼
                 BackHandler(enabled = currentScreen != "main") {
@@ -192,139 +260,59 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                     )
                 }
 
-                AnimatedContent(
-                    targetState = currentScreen,
-                    transitionSpec = {
-                        val isBackscaling = targetState == "main" || (targetState == "project_list" && initialState == "create_project")
-//                        val isBackscaling = targetState == "main"
-
-                        if (isBackscaling) {
-                            (slideInHorizontally { width -> -width } + fadeIn())
-                                .togetherWith(slideOutHorizontally { width -> width } + fadeOut())
-                        } else {
-                            (slideInHorizontally { width -> width } + fadeIn())
-                                .togetherWith(slideOutHorizontally { width -> -width } + fadeOut())
-                        }
-                    }
-                ) { target ->
-                    // 화면 로직
+                AnimatedContent(targetState = currentScreen) { target ->
                     when (target) {
-                        "main" -> {
-                            DistoMainScreen(
-                                isDistoConnected = isDistoConnected,
-                                selectedProjectName = selectedProject?.projectName,
-                                onConnectClick = { currentScreen = "connect" },
-                                onCreateProjectClick = {
-                                    previousScreen = "main"
-                                    currentScreen = "create_project"
-                                },
-                                onQuickSurveyClick = { currentScreen = "quick_survey" },
-                                onSurveyClick = { currentScreen = "survey" },
-                                onProjectListClick = { currentScreen = "project_list" },
-                                onHistoryClick = {
-                                    if (selectedProject == null) {
-                                        showProjectErrorDialog = true // 프로젝트가 없으면 토스풍 팝업 개방
-                                    } else {
-                                        currentScreen = "history" // 프로젝트가 있으면 히스토리로 정상 진입
-                                    }
-                                }
-                            )
-                        }
-
-                        // 간편 측정
-                        "quick_survey" -> {
-                            QuickSurveyScreen(
-                                isDistoConnected = isDistoConnected,
-                                // 메인 스코어보드 및 내부 일러스트 텍스트에 실시간 물리 거리 데이터 매핑
-                                distoMeasuredDistance = quickDistanceState.value,
-                                onMeasureClick = {
-                                    // 하드웨어로 레이저 측정 명령 전송 백그라운드 스레드 실행
-                                    Thread { mainYetiController.sendDistanceCommand() }.start()
-                                },
-                                onBackClick = { currentScreen = "main" }
-                            )
-                        }
-
-                        // Disto 연결
-                        "connect" -> {
-                            NavigationHostWrapper(onBack = { currentScreen = "main" })
-                        }
-
-                        // 프로젝트 생성
-                        "create_project" -> {
-                            // 완료 시 고정된 main이 아니라, 이전 previousScreen 화면으로 이동
-                            CreateProjectScreen(onBack = { currentScreen = previousScreen })
-//                            CreateProjectScreen(onBack = { currentScreen = "main" })
-                        }
-
-                        // 정밀 측정
+                        "main" -> DistoMainScreen(
+                            isDistoConnected = viewModel.isDistoConnected,
+                            selectedProjectName = selectedProject?.projectName,
+                            onConnectClick = { currentScreen = "connect" },
+                            onCreateProjectClick = { previousScreen = "main"; currentScreen = "create_project" },
+                            onQuickSurveyClick = { currentScreen = "quick_survey" },
+                            onSurveyClick = {
+                                if (selectedProject == null) showProjectErrorDialog = true
+                                else currentScreen = "survey"
+                            },
+                            onProjectListClick = { currentScreen = "project_list" },
+                            onHistoryClick = {
+                                if (selectedProject == null) showProjectErrorDialog = true
+                                else currentScreen = "history"
+                            }
+                        )
+                        "quick_survey" -> QuickSurveyScreen(
+                            isDistoConnected = viewModel.isDistoConnected,
+                            distoMeasuredDistance = quickDistanceState.value,
+                            onMeasureClick = { Thread { mainYetiController.sendDistanceCommand() }.start() },
+                            onBackClick = { currentScreen = "main" }
+                        )
+                        "connect" -> NavigationHostWrapper(onBack = { currentScreen = "main" })
+                        "create_project" -> CreateProjectScreen(onBack = { currentScreen = previousScreen })
                         "survey" -> {
-//                            SurveyMeasurementScreen(onBackClick = { currentScreen = "main" })
                             val context = androidx.compose.ui.platform.LocalContext.current
-
-                            // 가져온 context를 사용
-                            val db = AppDatabase.getDatabase(context)
-
-                            SurveyMeasurementScreen(
-                                measurementDao = db.measurementDao(),
-                                onBackClick = { currentScreen = "main" }
-                            )
+                            SurveyMeasurementScreen(measurementDao = AppDatabase.getDatabase(context).measurementDao(), onBackClick = { currentScreen = "main" })
                         }
-
-                        // 프로젝트 리스트
-                        "project_list" -> {
-                            ProjectListScreen(
-                                projectViewModel = projectViewModel,
-//                                projectViewModel = viewModel<com.terra.terradisto.viewmodel.ProjectViewModel>(),
-                                // 인스턴스를 새로 파던 부분을 기존 멤버 변수 주입 구조로 올바르게 교체
-                                distoViewModel = distoViewModel,
-//                                onNavigateToCreate = {
-//                                    previousScreen = "project_list"
-//                                    currentScreen = "create_project"
-//                                 },
-
-                                onNavigateToSurvey = {
-                                    currentScreen = "survey"
-                                },
-
-                                onCreateClick = {
-                                    // 프로젝트 리스트 화면에서 진입했음을 기록
-                                    previousScreen = "project_list"
-                                    currentScreen = "create_project"
-                                },
-
-                                onConnectClick = { currentScreen = "connect" }
-                            )
-                        }
-
+                        "project_list" -> ProjectListScreen(projectViewModel = projectViewModel, distoViewModel = distoViewModel, onNavigateToSurvey = { currentScreen = "survey" }, onCreateClick = { previousScreen = "project_list"; currentScreen = "create_project" }, onConnectClick = { currentScreen = "connect" })
                         "history" -> {
                             val context = androidx.compose.ui.platform.LocalContext.current
                             val db = AppDatabase.getDatabase(context)
-
-                            val selectedProjectId = selectedProject?.id ?: -1L
-                            val historyItems by db.measurementDao()
-                                .getMesurementByProject(selectedProjectId)
-                                .collectAsState(initial = emptyList())
-
-                            MeasureHistoryScreen(
-                                items = historyItems,
-                                onBackClick = { currentScreen = "main" }
-                            )
+                            val items by db.measurementDao().getMesurementByProject(selectedProject?.id ?: -1L).collectAsState(initial = emptyList())
+                            MeasureHistoryScreen(items = items, onBackClick = { currentScreen = "main" })
                         }
                     }
                 }
             }
         }
     }
-
-    // 상태값 변경
-    override fun onStatusChanged(isConnected: Boolean) {
-        runOnUiThread {
-            viewModel.updateConnectionStatus(isConnected) // SDK 연동용 상태 업데이트
-            distoViewModel.updateConnectionState(isConnected) // DistoMainScreen, ProjectList 뷰모델 동기화
-        }
-    }
 }
+
+
+// 상태값 변경
+//    override fun onStatusChanged(isConnected: Boolean) {
+//        runOnUiThread {
+//            viewModel.updateConnectionStatus(isConnected) // SDK 연동용 상태 업데이트
+//            distoViewModel.updateConnectionState(isConnected) // DistoMainScreen, ProjectList 뷰모델 동기화
+//        }
+//    }
+//}
 
 
 @Composable

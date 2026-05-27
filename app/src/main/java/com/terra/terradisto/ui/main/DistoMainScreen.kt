@@ -1,5 +1,6 @@
 package com.terra.terradisto.ui.main
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.terra.terradisto.BottomActionArea
@@ -42,8 +44,8 @@ fun DistoMainScreen(
     onProjectListClick: () -> Unit,
     onHistoryClick: () -> Unit
 ) {
-    // 스크롤 상태 정의
-    val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val scrollState = rememberScrollState() // 스크롤 상태 정의
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -107,10 +109,23 @@ fun DistoMainScreen(
                     title = "정밀 측정",
                     subtitle = "모든 항목 상세 기록하기",
                     icon = Icons.Rounded.Add,
-                    containerColor = if (isDistoConnected) Color(0xFF3182F6) else Color(0xFFADB5BD),
+//                    containerColor = if (isDistoConnected) Color(0xFF3182F6) else Color(0xFFADB5BD),
+                    containerColor = if (isDistoConnected && selectedProjectName != null) Color(0xFF3182F6) else Color(0xFFADB5BD),
                     modifier = Modifier.height(170.dp), //  간편 측정과 대칭을 이루도록 고정 높이 적용
+//                    onClick = {
+//                        if (isDistoConnected) onSurveyClick() else onConnectClick()
+//                    }
+
                     onClick = {
-                        if (isDistoConnected) onSurveyClick() else onConnectClick()
+                        if (!isDistoConnected) {
+                            onConnectClick()
+                        } else if (selectedProjectName == null) {
+                            // [추가] 프로젝트 선택이 안 된 경우 리스트로 안내
+                            Toast.makeText(context, "측정할 프로젝트를 먼저 선택해주세요.", Toast.LENGTH_SHORT).show()
+                            onProjectListClick()
+                        } else {
+                            onSurveyClick()
+                        }
                     }
                 )
 

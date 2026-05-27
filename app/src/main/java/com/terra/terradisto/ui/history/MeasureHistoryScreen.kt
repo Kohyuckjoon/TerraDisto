@@ -42,14 +42,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import com.terra.terradisto.data.AppDatabase
+import com.terra.terradisto.ui.history.components.EditMeasurementDialog
 import kotlinx.coroutines.launch
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
@@ -65,6 +70,13 @@ fun MeasureHistoryScreen(
     val scope = rememberCoroutineScope()
     val db = remember { AppDatabase.getDatabase(context) }
 
+    // 팝업의 표시 여부와 어떤 아이템을 수정할지 선택된 데이터를 저장하는 상태 선언
+    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedItemForEdit by remember { mutableStateOf<MeasurementEntity?>(null) }
+
+    var showDetailDialog by remember { mutableStateOf(false) }
+    var selectedItemForDetail by remember { mutableStateOf<MeasurementEntity?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,20 +87,20 @@ fun MeasureHistoryScreen(
                     }
                 },
 
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+                modifier = Modifier.shadow(3.dp)
             )
         },
         containerColor = Color(0xFFF2F4F6)
-    ) { padding ->
-
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 10.dp)
+                .padding(paddingValues)
         ) {
             LazyColumn(
-                modifier = Modifier.padding(padding),
-                contentPadding = PaddingValues(bottom = 70 .dp),
+                modifier = Modifier.fillMaxSize(), // 중복 padding 제거
+                contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(items) { item ->
@@ -100,7 +112,14 @@ fun MeasureHistoryScreen(
                                 Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        onEditClick = { /* 수정 로직은 다음에 */ }
+                        onEditClick = { targetItem ->
+                            selectedItemForEdit = targetItem
+                            showEditDialog = true
+                        },
+                        onDetailClick = { targetItem ->
+                            selectedItemForDetail = targetItem
+                            showDetailDialog = true
+                        }
                     )
                 }
             }
@@ -109,13 +128,15 @@ fun MeasureHistoryScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(Color.White) // 배경을 화이트 패널로 주어 리스트 컴포넌트 시인성 가림 방지
+                    .background(Color(0xFFF2F4F6))
+//                    .background(Color.White) // 배경을 화이트 패널로 주어 리스트 컴포넌트 시인성 가림 방지
                     .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(58.dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))  // [수정] 토스 특유의 부드러운 그림자 추가로 입체감 부여
                         .background(Color.White, RoundedCornerShape(16.dp))
                         .border(1.dp, Color(0xFFE5E8EB), RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
@@ -137,17 +158,35 @@ fun MeasureHistoryScreen(
                     Icon(
                         imageVector = Icons.Default.FileDownload,
                         contentDescription = "Excel Export",
-                        modifier = Modifier.size(20.dp),
-                        tint = Color(0xFF4E5968) // 토스 미디엄 그레이
+                        modifier = Modifier.size(22.dp),
+                        tint = Color(0xFF3182F6)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "엑셀로 내보내기 (Excel)",
+                        text = "엑셀 내보내기 (Excel)",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF333D4B) // 토스 딥 다크 그레이 문자 매칭
+                        color = Color(0xFF3182F6) // 다크 그레이 문자 매칭
                     )
                 }
+            }
+
+            if (showEditDialog && selectedItemForEdit != null) {
+                EditMeasurementDialog(
+                    item = selectedItemForEdit!!,
+                    onDismiss = {
+                        showEditDialog = false
+                        selectedItemForEdit = null
+                    },
+                    onConfirm = { updatedItem ->
+                        scope.launch {
+                            db.measurementDao().updateMeasurement(updatedItem)
+                            Toast.makeText(context, "수정되었습니다.", Toast.LENGTH_SHORT).show()
+                        }
+                        showEditDialog = false
+                        selectedItemForEdit = null
+                    }
+                )
             }
         }
     }

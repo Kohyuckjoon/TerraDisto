@@ -83,6 +83,7 @@ fun SurveyMeasurementScreen(
     var pipeSize by remember { mutableStateOf("") }     // 4. 관경
     var pipeHeight by remember { mutableStateOf("") }   // 5. 관 높이
     var lidMaterial by remember { mutableStateOf("") }
+    var customLidMaterial by remember { mutableStateOf("") } // 직접 입력값을 저장할 상태
     var pipeMaterial by remember { mutableStateOf("") }
 
     var chamberMaterial by remember { mutableStateOf("") }
@@ -114,6 +115,9 @@ fun SurveyMeasurementScreen(
     val materialOptions = listOf("주철", "SG(스틸그레이팅)", "칼라콘크리트", "직접 입력")
     var isCustomMaterialInput by remember { mutableStateOf(false) }
 
+    // 측정 시 어떤 관의 인덱스를 타겟팅하는지 저장할 상태 추가
+    var activePipeIndexForMeasure by remember { mutableIntStateOf(0) }
+
     // YetiDeviceController를 Compose 안에서 초기화 및 리스너 맵핑
     val yetiController = remember {
         YetiDeviceController(
@@ -143,15 +147,27 @@ fun SurveyMeasurementScreen(
                                 ActiveTarget.CHAMBER_WIDTH -> chamberWidth = formattedValue  // [추가]
                                 ActiveTarget.CHAMBER_HEIGHT -> chamberHeight = formattedValue // [추가]
                                 ActiveTarget.PIPE_SIZE -> {
-                                    pipeSize = formattedValue
-                                    if (pipeList.isNotEmpty()) {
-                                        pipeList[0].size = formattedValue
+                                    val formattedValue = "${data.distance} ${data.distanceUnit ?: ""}"
+
+                                    // 현재 측정 중인 인덱스의 값을 업데이트
+                                    pipeList = pipeList.mapIndexed { i, p ->
+                                        if (i == activePipeIndexForMeasure) p.copy(size = formattedValue) else p
                                     }
+
+//                                    pipeSize = formattedValue
+//                                    if (pipeList.isNotEmpty()) {
+//                                        pipeList[0].size = formattedValue
+//                                    }
                                 }
                                 ActiveTarget.PIPE_HEIGHT_SIZE -> {
-                                    pipeHeight = formattedValue
-                                    if (pipeList.isNotEmpty()) {
-                                        pipeList[0].height = formattedValue
+//                                    pipeHeight = formattedValue
+//                                    if (pipeList.isNotEmpty()) {
+//                                        pipeList[0].height = formattedValue
+//                                    }
+
+                                    val formattedValue = "${data.distance} ${data.distanceUnit ?: ""}"
+                                    pipeList = pipeList.mapIndexed { i, p ->
+                                        if (i == activePipeIndexForMeasure) p.copy(height = formattedValue) else p
                                     }
                                 }
                                 else -> {}
@@ -252,7 +268,8 @@ fun SurveyMeasurementScreen(
 //    val isFormComplete = topieValue.isNotEmpty()
 
     // 전체 입력 완료 체크 로직
-    val isFormComplete = manholeType.isNotEmpty() && lidMaterial.isNotEmpty() &&
+    val isFormComplete = manholeType.isNotEmpty() &&
+            (if (isCustomMaterialInput) customLidMaterial.isNotEmpty() else lidMaterial.isNotEmpty()) && // [수정] 직접 입력 조건 반영
             topieValue.isNotEmpty() && pipeList.all { it.direction.isNotEmpty() && it.size.isNotEmpty() }
 
     Scaffold(
@@ -307,7 +324,7 @@ fun SurveyMeasurementScreen(
                                         val measurement = com.terra.terradisto.data.MeasurementEntity(
                                             projectId = currentProjectId,
                                             manholeType = manholeType,
-                                            lidMaterial = lidMaterial,
+                                            lidMaterial = if (isCustomMaterialInput) customLidMaterial else lidMaterial, // [수정] 직접 입력값 우선
                                             lidSize = lidSize,
                                             topieValue = topieValue,
                                             chamberMaterial = chamberMaterial,
@@ -438,24 +455,60 @@ fun SurveyMeasurementScreen(
                             .background(Color(0xFF4E5968), shape = RoundedCornerShape(14.dp))
                             .fillMaxWidth()
                     ) {
-                        // 기본 선택 항목 구성
-                        DropdownMenuItem(
-                            text = { Text("✓ 선택하세요", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold) },
-                            onClick = {
-                                lidMaterial = ""
-                                isDropDownExpanded = false
-                            }
-                        )
                         materialOptions.forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(option, color = Color.White, fontSize = 15.sp) },
                                 onClick = {
-                                    lidMaterial = option
+                                    if (option == "직접 입력") {
+                                        isCustomMaterialInput = true
+                                        lidMaterial = "직접 입력"
+                                    } else {
+                                        isCustomMaterialInput = false
+                                        lidMaterial = option
+                                        customLidMaterial = ""
+                                    }
                                     isDropDownExpanded = false
                                 }
                             )
                         }
+
+
+//                        // 기본 선택 항목 구성
+//                        DropdownMenuItem(
+//                            text = { Text("✓ 선택하세요", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold) },
+//                            onClick = {
+//                                lidMaterial = ""
+//                                isDropDownExpanded = false
+//                            }
+//                        )
+//                        materialOptions.forEach { option ->
+//                            DropdownMenuItem(
+//                                text = { Text(option, color = Color.White, fontSize = 15.sp) },
+//                                onClick = {
+//                                    lidMaterial = option
+//                                    isDropDownExpanded = false
+//                                }
+//                            )
+//                        }
+
+
+
+
+
+
+
+
                     }
+                }
+
+                if (isCustomMaterialInput) {
+                    Spacer(Modifier.height(12.dp))
+                    InputField(
+                        label = "재질 직접 입력",
+                        placeholder = "예: 플라스틱",
+                        value = customLidMaterial,
+                        onValueChange = { customLidMaterial = it }
+                    )
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -984,22 +1037,36 @@ fun SurveyMeasurementScreen(
                                 InputField(
                                     label = "관경",
                                     placeholder = "예: 200mm",
-                                    value = pipeSize,
-                                    onValueChange = { pipeSize = it },
+                                    value = pipeItem.size,
+                                    onValueChange = { newValue ->
+                                        pipeList = pipeList.mapIndexed { i, p ->
+                                            if (i == index) p.copy(size = newValue) else p
+                                        }
+                                    },
                                     hasMeasure = true,
-                                    onMeasureClick = { startMeasurementFor(ActiveTarget.PIPE_SIZE) },
-                                    buttonText = if (activeTarget == ActiveTarget.PIPE_SIZE) buttonTextState.value else "측정 시작"
+                                    onMeasureClick = {
+                                        activePipeIndexForMeasure = index // 현재 몇 번째 관인지 저장
+                                        startMeasurementFor(ActiveTarget.PIPE_SIZE)
+                                    },
+                                    buttonText = if (activeTarget == ActiveTarget.PIPE_SIZE && activePipeIndexForMeasure == index) buttonTextState.value else "측정 시작"
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
                                 InputField(
                                     label = "높이",
                                     placeholder = "예: 1.5m",
-                                    value = pipeHeight,
-                                    onValueChange = { pipeHeight = it },
+                                    value = pipeItem.height,
+                                    onValueChange = { newValue ->
+                                        pipeList = pipeList.mapIndexed { i, p ->
+                                            if (i == index) p.copy(height = newValue) else p
+                                        }
+                                    },
                                     hasMeasure = true,
-                                    onMeasureClick = { startMeasurementFor(ActiveTarget.PIPE_HEIGHT_SIZE) },
-                                    buttonText = if (activeTarget == ActiveTarget.PIPE_HEIGHT_SIZE) buttonTextState.value else "측정 시작"
+                                    onMeasureClick = {
+                                        activePipeIndexForMeasure = index
+                                        startMeasurementFor(ActiveTarget.PIPE_HEIGHT_SIZE)
+                                    },
+                                    buttonText = if (activeTarget == ActiveTarget.PIPE_HEIGHT_SIZE && activePipeIndexForMeasure == index) buttonTextState.value else "측정 시작"
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -1367,27 +1434,27 @@ fun ToggleRowBox(
     }
 }
 
-@Preview(showBackground = true, device = "spec:width=1080px, height=2340px, dpi=440")
-@Composable
-fun PreviewSurveyMeasurementScreen() {
-    MaterialTheme {
-        val distState = remember { mutableStateOf("1.524 m") }
-        val angleState = remember { mutableStateOf("12.5°") }
-        val buttonState = remember { mutableStateOf("측정 시작") }
-
-        // Preview를 위한 가짜 Dao 구현
-        val dummyDao = object : com.terra.terradisto.data.MeasurementDao {
-            override suspend fun insertMeasurement(measurement: com.terra.terradisto.data.MeasurementEntity) {}
-            override fun getMesurementByProject(projectId: Long): kotlinx.coroutines.flow.Flow<List<com.terra.terradisto.data.MeasurementEntity>> =
-                kotlinx.coroutines.flow.flowOf(emptyList())
-            override suspend fun deleteMeasurement(measurement: com.terra.terradisto.data.MeasurementEntity) {}
-        }
-
-        SurveyMeasurementScreen(
-            measurementDao = dummyDao,
-            distanceState = distState,
-            angleState = angleState,
-            buttonTextState = buttonState
-        )
-    }
-}
+//@Preview(showBackground = true, device = "spec:width=1080px, height=2340px, dpi=440")
+//@Composable
+//fun PreviewSurveyMeasurementScreen() {
+//    MaterialTheme {
+//        val distState = remember { mutableStateOf("1.524 m") }
+//        val angleState = remember { mutableStateOf("12.5°") }
+//        val buttonState = remember { mutableStateOf("측정 시작") }
+//
+//        // Preview를 위한 가짜 Dao 구현
+//        val dummyDao = object : com.terra.terradisto.data.MeasurementDao {
+//            override suspend fun insertMeasurement(measurement: com.terra.terradisto.data.MeasurementEntity) {}
+//            override fun getMesurementByProject(projectId: Long): kotlinx.coroutines.flow.Flow<List<com.terra.terradisto.data.MeasurementEntity>> =
+//                kotlinx.coroutines.flow.flowOf(emptyList())
+//            override suspend fun deleteMeasurement(measurement: com.terra.terradisto.data.MeasurementEntity) {}
+//        }
+//
+//        SurveyMeasurementScreen(
+//            measurementDao = dummyDao,
+//            distanceState = distState,
+//            angleState = angleState,
+//            buttonTextState = buttonState
+//        )
+//    }
+//}

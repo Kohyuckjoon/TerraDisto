@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -16,6 +17,10 @@ interface MeasurementDao {
     // 측정 데이터 불러오기
     @Query("SELECT * FROM measurements WHERE projectId = :projectId ORDER BY timestamp DESC")
     fun getMesurementByProject(projectId: Long) : Flow<List<MeasurementEntity>>
+
+    // 측정 데이터 수정
+    @Update
+    suspend fun updateMeasurement(measurement: MeasurementEntity)
 
     // 측정 데이터 삭제
     @Delete

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,6 +49,7 @@ fun MeasureHistoryItem(
     item: MeasurementEntity,
     onDeleteClick: (MeasurementEntity) -> Unit,
     onEditClick: (MeasurementEntity) -> Unit,
+    onDetailClick: (MeasurementEntity) -> Unit
 ){
     var expanded by remember { mutableStateOf(false) }
 
@@ -93,11 +95,22 @@ fun MeasureHistoryItem(
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "${item.id}번 측정 데이터",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp)
+
+                    Column (
+                        verticalArrangement = Arrangement.Center
+                    ){
+                        Text(
+                            text = "${item.id}번 측정 데이터",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp)
+
+                        Text(
+                            text = formattedDate,
+                            style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF8B95A1))
+                        )
+                    }
+
                 }
 
 
@@ -109,7 +122,6 @@ fun MeasureHistoryItem(
                         Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Color(0xFF8B95A1))
                     }
 
-                    //  둥글고 깔끔한 토스풍 드롭다운 패널 디자인 구현
                     MaterialTheme(
                         shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))
                     ) {
@@ -122,6 +134,38 @@ fun MeasureHistoryItem(
                                 .padding(vertical = 4.dp),
                             scrollState = androidx.compose.foundation.rememberScrollState()
                         ) {
+//                            DropdownMenuItem(
+//                                text = {
+//                                    Row(verticalAlignment = Alignment.CenterVertically) {
+//                                        Box(
+//                                            modifier = Modifier
+//                                                .size(24.dp)
+//                                                .background(Color(0xFFF2F4F6), shape = androidx.compose.foundation.shape.CircleShape), // 연한 회색 배경의 원형
+//                                            contentAlignment = Alignment.Center
+//                                        ) {
+//                                            Icon(
+//                                                imageVector = androidx.compose.material.icons.Icons.Default.Info,
+//                                                contentDescription = null,
+//                                                modifier = Modifier.size(14.dp),
+//                                                tint = Color(0xFF4E5968)
+//                                            )
+//                                        }
+//                                        Spacer(modifier = Modifier.width(10.dp))
+//                                        Text(
+//                                            text = "상세보기",
+//                                            fontSize = 15.sp,
+//                                            fontWeight = FontWeight.SemiBold,
+//                                            color = Color(0xFF333D4B)
+//                                        )
+//                                        Spacer(modifier = Modifier.width(10.dp))
+//                                    }
+//                                },
+//                                onClick = {
+//                                    expanded = false
+//                                    onDetailClick(item)
+//                                }
+//                            )
+
                             //  '수정' 메뉴 아이템 - 가독성을 극대화한 아이콘 + 텍스트 조합
                             DropdownMenuItem(
                                 text = {
@@ -129,7 +173,7 @@ fun MeasureHistoryItem(
                                         Icon(
                                             imageVector = Icons.Default.Edit,
                                             contentDescription = "수정",
-                                            modifier = Modifier.size(18.dp),
+                                            modifier = Modifier.size(24.dp),
                                             tint = Color(0xFF4E5968) // 토스 다크 그레이 컬러
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
@@ -157,7 +201,7 @@ fun MeasureHistoryItem(
                                         Icon(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = "삭제",
-                                            modifier = Modifier.size(18.dp),
+                                            modifier = Modifier.size(24.dp),
                                             tint = Color(0xFFF04452) // 토스 경고 레드 컬러
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
@@ -184,16 +228,11 @@ fun MeasureHistoryItem(
                 }
             }
 
-            Text(
-                text = formattedDate,
-                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF8B95A1))
-            )
-
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoBlock("맨홀 타입", item.manholeType, Modifier.weight(1f))
-                InfoBlock("심도", "${item.topieValue} mm", Modifier.weight(1f))
+                InfoBlock("심도", "${item.topieValue} m", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -214,12 +253,12 @@ fun MeasureHistoryItem(
                 val height = dimensions.getOrNull(1) ?: "-"
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    InfoBlock("가로", "$width mm", Modifier.weight(1f))
-                    InfoBlock("세로", "$height mm", Modifier.weight(1f))
+                    InfoBlock("가로", "$width", Modifier.weight(1f))
+                    InfoBlock("세로", "$height", Modifier.weight(1f))
                 }
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    InfoBlock("직경", "${item.chamberSize} mm", Modifier.weight(1f))
+                    InfoBlock("직경", "${item.chamberSize}", Modifier.weight(1f))
                     // 원형일 때는 우측 공간을 비워둠
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -271,7 +310,8 @@ fun PreviewMeasureHistoryItem() {
             item = sampleItem,
 //            onMenuClick = {}
             onEditClick = {},
-            onDeleteClick = {}
+            onDeleteClick = {},
+            onDetailClick = {}
         )
     }
 }
