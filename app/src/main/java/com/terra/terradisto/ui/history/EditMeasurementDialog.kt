@@ -59,8 +59,8 @@ fun EditMeasurementDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),  // [수정] 토스 스타일의 컴팩트한 다이얼로그 너비 확보를 위한 패딩 조정
-        shape = RoundedCornerShape(24.dp),  // [수정] 머티리얼3 & 토스 스타일의 부드럽고 큰 라운딩 적용
+                .padding(horizontal = 24.dp),  // 컴팩트한 다이얼로그 너비 확보를 위한 패딩 조정
+        shape = RoundedCornerShape(24.dp),  // 부드럽고 큰 라운딩 적용
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
@@ -78,7 +78,7 @@ fun EditMeasurementDialog(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                     // [수정] 이미지와 동일한 블루 원형 번호 배지 구현
+                     // //  이미지와 동일한 블루 원형 번호 배지 구현
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -96,7 +96,6 @@ fun EditMeasurementDialog(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column {
-                         // [수정] 텍스트 가독성을 위한 토스풍 타이포그래피 스타일링
                         Text(
                             text = "${item.id}번 측정 데이터 수정",
                             fontSize = 16.sp,
@@ -113,7 +112,7 @@ fun EditMeasurementDialog(
                     }
                 }
 
-                 // [수정] 이미지 상의 X 닫기 버튼 추가 (직관적인 UX 제공)
+                 // //  이미지 상의 X 닫기 버튼 추가 (직관적인 UX 제공)
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.size(24.dp)
@@ -129,7 +128,7 @@ fun EditMeasurementDialog(
             Spacer(modifier = Modifier.height(24.dp))
 
             // --- 2. 입력 폼 영역 (2열 배치 구조) ---
-             // [수정] 입력 폼 전체를 감싸는 미니멀한 라이트 그레이 배경 카드 박스
+             // //  입력 폼 전체를 감싸는 미니멀한 라이트 그레이 배경 카드 박스
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -178,7 +177,7 @@ fun EditMeasurementDialog(
                             shape = textFieldShape,
                             colors = textFieldColors,
                             singleLine = true,
-                            suffix = { Text("m", color = Color(0xFFB0B8C1), fontSize = 14.sp) },  // [수정] 우측에 단위(m) 표시로 직관성 향상
+                            suffix = { Text("m", color = Color(0xFFB0B8C1), fontSize = 14.sp) },  // //  우측에 단위(m) 표시로 직관성 향상
                         textStyle = LocalTextStyle.current.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         )
                     }
@@ -200,7 +199,7 @@ fun EditMeasurementDialog(
                             shape = textFieldShape,
                             colors = textFieldColors,
                             singleLine = true,
-                            suffix = { Text("m", color = Color(0xFFB0B8C1), fontSize = 14.sp) },  // [수정] 우측에 단위(m) 표시
+                            suffix = { Text("m", color = Color(0xFFB0B8C1), fontSize = 14.sp) },  // //  우측에 단위(m) 표시
                         textStyle = LocalTextStyle.current.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         )
                     }
@@ -217,7 +216,7 @@ fun EditMeasurementDialog(
                                 shape = textFieldShape,
                                 colors = textFieldColors,
                                 singleLine = true,
-                                suffix = { Text("m", color = Color(0xFFB0B8C1), fontSize = 14.sp) },  // [수정] 우측에 단위(m) 표시
+                                suffix = { Text("m", color = Color(0xFFB0B8C1), fontSize = 14.sp) },  // //  우측에 단위(m) 표시
                             textStyle = LocalTextStyle.current.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                             )
                         } else {
@@ -231,7 +230,7 @@ fun EditMeasurementDialog(
             Spacer(modifier = Modifier.height(28.dp))
 
             // --- 3. 하단 액션 버튼 영역 ---
-             // [수정] 이미지와 완벽히 일치하는 둥글고 시인성이 높은 고대비 버튼 레이아웃 구조로 전면 수정
+             // //  이미지와 완벽히 일치하는 둥글고 시인성이 높은 고대비 버튼 레이아웃 구조로 전면 수정
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -247,7 +246,7 @@ fun EditMeasurementDialog(
                         contentColor = Color(0xFF4E5968)
                     ),
                     shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E8EB))  // [수정] 토스풍의 연한 테두리선 추가
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E8EB))
                 ) {
                 Text(
                     text = "취소",
@@ -276,7 +275,7 @@ fun EditMeasurementDialog(
                         .weight(1.3f) // 수정 완료 버튼을 조금 더 강조하는 비율 배정
                         .height(54.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3182F6), // 토스 시그니처 블루
+                        containerColor = Color(0xFF3182F6),
                         contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(16.dp)

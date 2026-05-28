@@ -126,7 +126,7 @@ public class ConnectDistoFragment extends Fragment
         requireActivity().runOnUiThread(() -> {
             if (isEnabled) {
                 b.tvBtStatus.setText("켜짐");
-                b.tvBtStatus.setTextColor(android.graphics.Color.parseColor("#3182F6")); // 토스 블루
+                b.tvBtStatus.setTextColor(android.graphics.Color.parseColor("#3182F6")); //  블루
             } else {
                 b.tvBtStatus.setText("꺼짐");
                 b.tvBtStatus.setTextColor(android.graphics.Color.parseColor("#8B95A1")); // 회색

@@ -116,7 +116,7 @@ fun MeasureHistoryItem(
 
 
 
-                //  토스 스타일의 직관적인 수정/삭제 팝업 메뉴 컴포넌트 마운트
+                // 수정/삭제 팝업 메뉴
                 Box {
                     IconButton (onClick = { expanded = true }){
                         Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Color(0xFF8B95A1))
@@ -174,7 +174,7 @@ fun MeasureHistoryItem(
                                             imageVector = Icons.Default.Edit,
                                             contentDescription = "수정",
                                             modifier = Modifier.size(24.dp),
-                                            tint = Color(0xFF4E5968) // 토스 다크 그레이 컬러
+                                            tint = Color(0xFF4E5968) //  다크 그레이 컬러
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Text(
@@ -202,7 +202,7 @@ fun MeasureHistoryItem(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = "삭제",
                                             modifier = Modifier.size(24.dp),
-                                            tint = Color(0xFFF04452) // 토스 경고 레드 컬러
+                                            tint = Color(0xFFF04452) //  경고 레드 컬러
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Text(
@@ -300,7 +300,7 @@ fun PreviewMeasureHistoryItem() {
         pipeList = emptyList()
     )
 
-    // 토스 디자인 확인을 위해 배경색을 회색으로 설정
+    //  디자인 확인을 위해 배경색을 회색으로 설정
     androidx.compose.foundation.layout.Box(
         modifier = Modifier
             .background(Color(0xFFF2F4F6))

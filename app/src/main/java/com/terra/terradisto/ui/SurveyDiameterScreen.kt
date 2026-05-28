@@ -269,7 +269,7 @@ fun SurveyMeasurementScreen(
 
     // 전체 입력 완료 체크 로직
     val isFormComplete = manholeType.isNotEmpty() &&
-            (if (isCustomMaterialInput) customLidMaterial.isNotEmpty() else lidMaterial.isNotEmpty()) && // [수정] 직접 입력 조건 반영
+            (if (isCustomMaterialInput) customLidMaterial.isNotEmpty() else lidMaterial.isNotEmpty()) && // //  직접 입력 조건 반영
             topieValue.isNotEmpty() && pipeList.all { it.direction.isNotEmpty() && it.size.isNotEmpty() }
 
     Scaffold(
@@ -324,7 +324,7 @@ fun SurveyMeasurementScreen(
                                         val measurement = com.terra.terradisto.data.MeasurementEntity(
                                             projectId = currentProjectId,
                                             manholeType = manholeType,
-                                            lidMaterial = if (isCustomMaterialInput) customLidMaterial else lidMaterial, // [수정] 직접 입력값 우선
+                                            lidMaterial = if (isCustomMaterialInput) customLidMaterial else lidMaterial, // //  직접 입력값 우선
                                             lidSize = lidSize,
                                             topieValue = topieValue,
                                             chamberMaterial = chamberMaterial,
@@ -681,7 +681,7 @@ fun SurveyMeasurementScreen(
 //                                modifier = Modifier.fillMaxWidth(0.9f).background(Color.White)
 //                            ) {
 //                                val materials = listOf("콘크리트", "벽돌", "기타")
-//                                // 💡 [해결] 중복 할당 제거 및 람다 변수명 충돌 버그 수정
+//                                // 중복 할당 제거 및 람다 변수명 충돌 버그 수정
 //                                materials.forEach { item ->
 //                                    DropdownMenuItem(
 //                                        text = { Text(item, fontSize = 15.sp, color = Color(0xFF191F28)) },
@@ -1265,7 +1265,7 @@ fun InputField(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // 토스 고유의 터치하기 편한 원형 회색 X 아이콘 지우기 버턴
+                            //  고유의 터치하기 편한 원형 회색 X 아이콘 지우기 버턴
                             IconButton(
                                 onClick = onClearClick,
                                 modifier = Modifier.size(44.dp)

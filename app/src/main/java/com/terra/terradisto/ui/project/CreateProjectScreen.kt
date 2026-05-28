@@ -99,7 +99,7 @@ fun CreateProjectScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(62.dp), //  버튼 높이를 키워 터치 편의성 증대
-                    shape = RoundedCornerShape(18.dp), //  더 둥근 모서리(토스 스타일)
+                    shape = RoundedCornerShape(18.dp), //  더 둥근 모서리
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF3182F6),
                         contentColor = Color.White,

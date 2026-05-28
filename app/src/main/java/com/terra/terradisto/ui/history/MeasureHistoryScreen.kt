@@ -28,6 +28,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallTopAppBar
@@ -76,6 +79,8 @@ fun MeasureHistoryScreen(
 
     var showDetailDialog by remember { mutableStateOf(false) }
     var selectedItemForDetail by remember { mutableStateOf<MeasurementEntity?>(null) }
+
+    var showExcelSuccessDialog by remember { mutableStateOf(false) } // 엑셀 내보내기 성공 팝업 제어 상태 변수
 
     Scaffold(
         topBar = {
@@ -136,17 +141,27 @@ fun MeasureHistoryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(58.dp)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))  // [수정] 토스 특유의 부드러운 그림자 추가로 입체감 부여
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(18.dp)
+                        )
                         .background(Color.White, RoundedCornerShape(16.dp))
                         .border(1.dp, Color(0xFFE5E8EB), RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
                         .clickable {
-                            // [수정] Toast만 띄우지 말고 실제 함수 호출!
                             if (items.isNotEmpty()) {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                    exportToExcel(context, items)
+                                    exportToExcel(context, items) { success ->
+                                        if (success) {
+                                            showExcelSuccessDialog = true
+                                        }
+                                    }
                                 } else {
-                                    Toast.makeText(context, "이 기능은 Android 10 이상에서 지원됩니다.", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "이 기능은 Android 10 이상에서 지원됩니다.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             } else {
                                 Toast.makeText(context, "내보낼 데이터가 없습니다.", Toast.LENGTH_SHORT).show()
@@ -188,12 +203,62 @@ fun MeasureHistoryScreen(
                     }
                 )
             }
+
+            if (showExcelSuccessDialog) {
+                AlertDialog(
+                    onDismissRequest = { showExcelSuccessDialog = false },
+                    shape = RoundedCornerShape(24.dp), //  특유의 둥글고 세련된 느낌 적용
+                    containerColor = Color.White,
+                    title = {
+                        Text(
+                            text = "엑셀 파일이 준비되었어요",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF191F28) //  주요 다크 그레이
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "현장 측정 데이터 내역이 엑셀 형식으로 \n" +
+                                    "기기의 다운로드(Download) 폴더에 저장되었어요",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF4E5968),
+                            lineHeight = 22.sp
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = { showExcelSuccessDialog = false },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF3182F6),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(
+                                text = "확인",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    },
+                    dismissButton = null
+                )
+            }
         }
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.Q)
-private fun exportToExcel(context: android.content.Context, items: List<MeasurementEntity>) {
+private fun exportToExcel(
+    context: android.content.Context,
+    items: List<MeasurementEntity>,
+    onResult: (Boolean) -> Unit
+) {
     // 엑셀 내용 구성
     val csvHeader = "목록, 상세정보\n"
     val csvBody = items.joinToString("\n") { item ->
@@ -235,10 +300,17 @@ private fun exportToExcel(context: android.content.Context, items: List<Measurem
                     writer.write(fullContent)
                 }
             }
-            android.widget.Toast.makeText(context, "다운로드 폴더에 저장되었습니다.", android.widget.Toast.LENGTH_LONG).show()
+            onResult(true)
         } catch (e: Exception) {
-            android.widget.Toast.makeText(context, "저장 실패: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+            onResult(false)
+            android.widget.Toast.makeText(
+                context,
+                "저장 실패: ${e.message}",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
+    } else {
+        onResult(false)
     }
 }
 

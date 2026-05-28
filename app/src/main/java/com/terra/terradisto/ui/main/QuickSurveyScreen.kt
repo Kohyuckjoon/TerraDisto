@@ -178,7 +178,7 @@ fun QuickSurveyScreen(
             )
         },
         bottomBar = {
-            // 하단 컨트롤러 영역 (토스 스타일 라운드 및 그림자 최적화)
+            // 하단 컨트롤러 영역
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = Color(0xFFF2F4F6)
@@ -197,7 +197,7 @@ fun QuickSurveyScreen(
                                 .size(56.dp)
                                 .background(Color.White, CircleShape)
                                 .clickable {
-                                    // [수정] 모든 상태 초기화
+                                    // //  모든 상태 초기화
                                     measurementLog.clear()
                                     currentDistance = "0.000"
                                     maxDistance = 0.0
@@ -352,7 +352,7 @@ fun QuickSurveyScreen(
 
                                 // 빨간색 점선 레이저 광선
                                 drawLine(
-                                    color = Color(0xFFF04452), // 토스 레드 컬러
+                                    color = Color(0xFFF04452), //  레드 컬러
                                     start = androidx.compose.ui.geometry.Offset(centerX, startY),
                                     end = androidx.compose.ui.geometry.Offset(centerX, endY),
                                     strokeWidth = 2.dp.toPx(),

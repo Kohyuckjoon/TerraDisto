@@ -139,7 +139,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                 distoViewModel.updateConnectionState(isConnected)
                             }
 
-                            // [수정] 인터페이스 명세에 맞춰 오버라이드 (경로 수정 시 자동으로 매칭됨)
+                            // //  인터페이스 명세에 맞춰 오버라이드 (경로 수정 시 자동으로 매칭됨)
                             override fun onStatusChange(status: String?) {}
                             override fun onReconnect() {}
                             override fun onError(code: Int, message: String?) {}
@@ -197,14 +197,14 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                 if (showProjectErrorDialog) {
                     AlertDialog(
                         onDismissRequest = { showProjectErrorDialog = false },
-                        shape = RoundedCornerShape(24.dp), // 토스 특유의 둥글고 세련된 느낌 적용
+                        shape = RoundedCornerShape(24.dp), //  특유의 둥글고 세련된 느낌 적용
                         containerColor = Color.White,
                         title = {
                             Text(
                                 text = "선택된 프로젝트가 없어요",
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF191F28) // 토스 주요 다크 그레이
+                                color = Color(0xFF191F28) //  주요 다크 그레이
                             )
                         },
                         text = {
@@ -212,7 +212,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                 text = "측정 내역을 확인하려면\n프로젝트를 먼저 선택해야 해요.",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF4E5968), // 토스 서브 본문 컬러
+                                color = Color(0xFF4E5968), //  서브 본문 컬러
                                 lineHeight = 22.sp
                             )
                         },
@@ -227,7 +227,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                     .height(50.dp),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF3182F6), // 토스 시그니처 블루
+                                    containerColor = Color(0xFF3182F6),
                                     contentColor = Color.White
                                 )
                             ) {
