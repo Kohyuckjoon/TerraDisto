@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Construction
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -199,6 +200,20 @@ fun SurveyDiameterScreen(
                     )
                 )
             )
+        },
+
+        bottomBar = {
+            Surface (
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 8.dp
+            ){
+                Box(modifier = Modifier.padding(16.dp)){
+                    SaveButton(onClick = {
+                        Log.d("SurveyDebug", "저장 버튼 클릭됨")
+                    })
+                }
+            }
         }
     ) { padding ->
         Column(
@@ -840,6 +855,35 @@ fun PipeInputField(label: String, placeholder: String, value: String, modifier: 
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent
             )
+        )
+    }
+}
+
+@Composable
+fun SaveButton(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp), // 토스 스타일의 큼직한 높이
+        shape = RoundedCornerShape(16.dp), // 부드러운 둥근 모서리
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF3182F6), // 토스 블루
+            contentColor = Color.White
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+    ) {
+        // [수정] 아이콘과 텍스트로 직관성 부여
+        Icon(
+            imageVector = Icons.Rounded.Save, // (참고: Icons.Rounded.Save 사용)
+            contentDescription = null,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "측정 데이터 저장",
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }
