@@ -56,9 +56,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
+import androidx.room.util.getColumnIndex
 import com.terra.terradisto.data.AppDatabase
 import com.terra.terradisto.ui.history.components.EditMeasurementDialog
 import kotlinx.coroutines.launch
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 import kotlin.concurrent.write
@@ -259,31 +262,44 @@ private fun exportToExcel(
     items: List<MeasurementEntity>,
     onResult: (Boolean) -> Unit
 ) {
-    // 엑셀 내용 구성
-    val csvHeader = "목록, 상세정보\n"
-    val csvBody = items.joinToString("\n") { item ->
+    val workbook = XSSFWorkbook()
+    val sheet = workbook.createSheet("측정 내역 데이터")
+
+    val headerRow = sheet.createRow(0)
+    headerRow.createCell(0).setCellValue("목록")
+    headerRow.createCell(1).setCellValue("상세 정보")
+
+    items.forEachIndexed { index, item ->
+        val row = sheet.createRow(index + 1)
         val title = "${item.id}번 측정 데이터"
 
-        // 데이터 조합(사각형 원형 구분)
         val detail = if (item.selectedChamberShape == "사각형") {
-            val dims = item.chamberSize.split(" x ")
+            val dims = item.chamberSize.split("x")
             val w = dims.getOrNull(0) ?: "-"
-            val h = dims.getOrNull(1) ?: "-"
+            val h = dims.getOrNull(0) ?: "-"
             "${item.manholeType} / ${item.topieValue}m / ${w}m / ${h}m"
         } else {
             "${item.manholeType} / ${item.topieValue}m / ${item.chamberSize}"
         }
-        "\"$title\",\"$detail\"" // 쉼표가 데이터에 포함될 경우 큰 따옴표로 감싸주기
+
+        row.createCell(0).setCellValue(title)
+        row.createCell(1).setCellValue(detail)
     }
 
-    val fullContent = csvHeader + csvBody
-    val fileName = "TerraDIsto_Export_${System.currentTimeMillis()}.csv"
+    // 셀 너비 강제 확장 조절 셋팅
+    sheet.setColumnWidth(0, 25 * 256)
+    // 상세 정보 컬럼은 텍스트 길이 조건에 맞게
+//    sheet.autoSizeColumn(1)
+    sheet.setColumnWidth(1, 45 * 256)
+//    sheet.setColumnWidth(2, 20 * 256)
 
-    // MediaStore 이용해서 DownLoad 폴더 저장
+    // 저장할 파일명 설정(.xlsx 확장자)
+    val fileName = "TerraDIsto_Export_${System.currentTimeMillis()}.xlsx"
+
     val resolver = context.contentResolver
     val contentValues = android.content.ContentValues().apply {
         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-        put(MediaStore.MediaColumns.MIME_TYPE, "text/csv")
+        put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
         }
@@ -293,25 +309,81 @@ private fun exportToExcel(
 
     if (uri != null) {
         try {
-            resolver.openOutputStream(uri)?.use { outputStream ->
-                OutputStreamWriter(outputStream, StandardCharsets.UTF_8).use { writer ->
-                    // Excel 한글 깨짐 방지를 위한 BOM(Byte Order Mark) 추가
-                    writer.write('\uFEFF'.toInt())
-                    writer.write(fullContent)
-                }
+            resolver.openOutputStream(uri)?.use { outputStream: OutputStream ->
+                // POI 통합문서 바이너리 스트림을 파일 출력지에 직접 플러시 연동
+                workbook.write(outputStream)
             }
+            workbook.close()
             onResult(true)
         } catch (e: Exception) {
+            workbook.close()
             onResult(false)
             android.widget.Toast.makeText(
                 context,
-                "저장 실패: ${e.message}",
+                "엑셀 생성 실패: ${e.message}",
                 android.widget.Toast.LENGTH_SHORT
             ).show()
         }
     } else {
+        workbook.close()
         onResult(false)
     }
+
+
+
+//    // 엑셀 내용 구성
+//    val csvHeader = "목록, 상세정보\n"
+//    val csvBody = items.joinToString("\n") { item ->
+//        val title = "${item.id}번 측정 데이터"
+//
+//        // 데이터 조합(사각형 원형 구분)
+//        val detail = if (item.selectedChamberShape == "사각형") {
+//            val dims = item.chamberSize.split(" x ")
+//            val w = dims.getOrNull(0) ?: "-"
+//            val h = dims.getOrNull(1) ?: "-"
+//            "${item.manholeType} / ${item.topieValue}m / ${w}m / ${h}m"
+//        } else {
+//            "${item.manholeType} / ${item.topieValue}m / ${item.chamberSize}"
+//        }
+//        "\"$title\",\"$detail\"" // 쉼표가 데이터에 포함될 경우 큰 따옴표로 감싸주기
+//    }
+//
+//    val fullContent = csvHeader + csvBody
+//    val fileName = "TerraDIsto_Export_${System.currentTimeMillis()}.csv"
+//
+//    // MediaStore 이용해서 DownLoad 폴더 저장
+//    val resolver = context.contentResolver
+//    val contentValues = android.content.ContentValues().apply {
+//        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+//        put(MediaStore.MediaColumns.MIME_TYPE, "text/csv")
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+//        }
+//    }
+//
+//    val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+//
+//    if (uri != null) {
+//        try {
+//            resolver.openOutputStream(uri)?.use { outputStream ->
+//                OutputStreamWriter(outputStream, StandardCharsets.UTF_8).use { writer ->
+//                    // Excel 한글 깨짐 방지를 위한 BOM(Byte Order Mark) 추가
+//                    writer.write('\uFEFF'.toInt())
+//                    writer.write(fullContent)
+//                }
+//            }
+//            onResult(true)
+//        } catch (e: Exception) {
+//            onResult(false)
+//            android.widget.Toast.makeText(
+//                context,
+//                "저장 실패: ${e.message}",
+//                android.widget.Toast.LENGTH_SHORT
+//            ).show()
+//        }
+//    } else {
+//        onResult(false)
+//    }
 }
 
 @Preview(showBackground = true)

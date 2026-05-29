@@ -1,14 +1,11 @@
 package com.terra.terradisto.data
 
-import android.adservices.topics.Topic
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
-import androidx.room.TypeConverters
-//import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken
-import com.terra.terradisto.ui.PipeUiItem
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.terra.terradisto.data.PipeUiItem
 
 @Entity(tableName = "measurements")
 data class MeasurementEntity (
@@ -32,8 +29,12 @@ data class MeasurementEntity (
 class MeasurementConverters {
     private val gson = Gson()
 
+
+//    fun fromPipeList(value: List<PipeUiItem>): String {
+//        return gson.toJson(value)
+//    }
     @TypeConverter
-    fun fromPipeList(value: List<PipeUiItem>): String {
+    fun fromPipeList(value: List<PipeUiItem>?): String { // [수정] null 허용이 안전합니다
         return gson.toJson(value)
     }
 

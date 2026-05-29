@@ -52,6 +52,16 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+
+    packaging {
+        resources {
+            // 중복되는 META-INF/DEPENDENCIES 파일을 빌드 대상에서 제외하거나 하나만 선택하도록 설정
+            excludes += "/META-INF/DEPENDENCIES"
+
+            // 만약 나중에 다른 파일도 비슷하게 충돌나면 아래처럼 pickFirst를 써도 안전합니다.
+            pickFirsts += "META-INF/DEPENDENCIES"
+        }
+    }
 }
 
 dependencies {
@@ -94,4 +104,6 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation 'com.google.code.gson:gson:2.10.1'
+
+    implementation("org.apache.poi:poi-ooxml:5.2.5") // 엑셀 파일 생성 및 셀 너비 제어를 위한 POI 라이브러리
 }

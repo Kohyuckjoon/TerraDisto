@@ -1,5 +1,6 @@
 package com.terra.terradisto
 
+import SurveyDiameterScreen
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -31,11 +32,12 @@ import com.terra.terradisto.ui.navigationHostWrapper.NavigationHostWrapper
 import androidx.compose.animation.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.terra.terradisto.data.AppDatabase
-import com.terra.terradisto.ui.ActiveTarget
+
 import com.terra.terradisto.ui.ProjectListScreen
-import com.terra.terradisto.ui.SurveyMeasurementScreen
+
 import com.terra.terradisto.ui.history.MeasureHistoryScreen
 import com.terra.terradisto.ui.main.QuickSurveyScreen
+import com.terra.terradisto.ui.screens.SurveyMeasurementScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
 import kotlinx.coroutines.delay
 
@@ -287,8 +289,16 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         "connect" -> NavigationHostWrapper(onBack = { currentScreen = "main" })
                         "create_project" -> CreateProjectScreen(onBack = { currentScreen = previousScreen })
                         "survey" -> {
-                            val context = androidx.compose.ui.platform.LocalContext.current
-                            SurveyMeasurementScreen(measurementDao = AppDatabase.getDatabase(context).measurementDao(), onBackClick = { currentScreen = "main" })
+                            // 1. 필요한 상태값들을 MainActivity 내에서 가져옵니다
+                            SurveyDiameterScreen(
+                                isDistoConnected = viewModel.isDistoConnected, // 기존 연결 상태
+                                distoMeasuredDistance = quickDistanceState.value, // 실시간 측정값
+                                onMeasureClick = {
+                                    // 측정 명령 전송 로직
+                                    Thread { mainYetiController.sendDistanceCommand() }.start()
+                                },
+                                onBackClick = { currentScreen = "main" }
+                            )
                         }
                         "project_list" -> ProjectListScreen(projectViewModel = projectViewModel, distoViewModel = distoViewModel, onNavigateToSurvey = { currentScreen = "survey" }, onCreateClick = { previousScreen = "project_list"; currentScreen = "create_project" }, onConnectClick = { currentScreen = "connect" })
                         "history" -> {

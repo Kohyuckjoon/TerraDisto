@@ -278,9 +278,6 @@ fun QuickSurveyScreen(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            // ----------------------------------------------------
-            // 1. LEICA DISTO 상단 인포메이션 카드 (시안 그대로 구현)
-            // ----------------------------------------------------
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -318,16 +315,10 @@ fun QuickSurveyScreen(
                             )
                         }
 
-                        // 우측 하드웨어 일러스트 플레이스홀더 영역 (박스 데코레이션 처리)
-                        // 우측 하드웨어 일러스트 영역 (100% 컴포즈 코드로 그리기)
                         Box(
                             modifier = Modifier.size(64.dp, 140.dp), // 하단 레이저 공간 확보를 위해 높이를 140.dp로 확장
                             contentAlignment = Alignment.TopCenter
                         ) {
-                            // ----------------------------------------------------
-                            // 0. 배경에 레이저 선 먼저 그리기 (장비 뒤에서부터 뿜어져 나오도록)
-                            // ----------------------------------------------------
-                            // 무한 루프 애니메이션으로 점선 변위(Offset)를 주어 아래로 흐르는 듯한 효과 연출
                             val infiniteTransition = rememberInfiniteTransition(label = "LaserTransition")
                             val laserOffset by infiniteTransition.animateFloat(
                                 initialValue = 0f,
@@ -357,13 +348,10 @@ fun QuickSurveyScreen(
                                     end = androidx.compose.ui.geometry.Offset(centerX, endY),
                                     strokeWidth = 2.dp.toPx(),
                                     pathEffect = PathEffect.dashPathEffect(
-//                                        intervals = floatArrayOf(8f, 6f), // [선의 길이, 공백의 길이]
-//                                        phase = laserOffset // 애니메이션 오프셋 적용으로 흐르는 효과
                                         intervals = floatArrayOf(8f, 6f),
                                         phase = laserOffset
                                     )
                                 )
-
                                 // 레이저 종착지 또는 시작점의 찌릿한 네온 포인트 점 효과
                                 drawCircle(
                                     color = Color(0xFFF04452),
@@ -372,9 +360,6 @@ fun QuickSurveyScreen(
                                 )
                             }
 
-                            // ----------------------------------------------------
-                            // 1. 기존 디스토 장비 본체 (레이저 위에 안착)
-                            // ----------------------------------------------------
                             Box(
                                 modifier = Modifier
                                     .size(64.dp, 100.dp)
@@ -450,9 +435,6 @@ fun QuickSurveyScreen(
                 }
             }
 
-            // ----------------------------------------------------
-            // 2. 경고 안내 배너 박스
-            // ----------------------------------------------------
             item {
                 Box(
                     modifier = Modifier
@@ -481,9 +463,6 @@ fun QuickSurveyScreen(
                 }
             }
 
-            // ----------------------------------------------------
-            // 3. 실시간 측정 거리 스코어보드 패널
-            // ----------------------------------------------------
             item {
                 Surface(
                     modifier = Modifier
@@ -530,9 +509,6 @@ fun QuickSurveyScreen(
                 }
             }
 
-            // ----------------------------------------------------
-            // 4. 히스토리 헤더 및 스크롤 리스트 처리 영역
-            // ----------------------------------------------------
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
