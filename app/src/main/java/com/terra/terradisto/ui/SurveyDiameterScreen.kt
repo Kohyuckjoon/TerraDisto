@@ -1140,7 +1140,7 @@ fun PipeItemForm(
                 IconButton(
                     onClick = onRemove,
                     modifier = Modifier
-                        .background(Color(0xFFFFE8E8), CircleShape) // 옅은 빨간색 배경 (토스 스타일)
+                        .background(Color(0xFFFFE8E8), CircleShape)
                         .size(28.dp)
                 ) {
                     Icon(
@@ -1282,10 +1282,10 @@ fun SaveButton(onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp), // 토스 스타일의 큼직한 높이
+            .height(56.dp),
         shape = RoundedCornerShape(16.dp), // 부드러운 둥근 모서리
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF3182F6), // 토스 블루
+            containerColor = Color(0xFF3182F6),
             contentColor = Color.White
         ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
