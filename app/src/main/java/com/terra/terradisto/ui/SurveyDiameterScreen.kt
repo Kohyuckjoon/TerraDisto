@@ -66,7 +66,8 @@ fun SurveyDiameterScreen(
     distoMeasuredDistance: String,
     measurementDao: MeasurementDao, // 저장 기능 추가
     onMeasureClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onHistoryClick: () -> Unit // 기록 화면
 ) {
     // 측정 상태 관리
     var currentDistance by remember { mutableStateOf("0.000") }
@@ -123,6 +124,9 @@ fun SurveyDiameterScreen(
 
     // 뒤로 가기 확인 다이얼로그 상태
     var showExitConfirmDialog by remember { mutableStateOf(false) }
+
+    // 기록 확인 다이얼로그 상태
+    var showHistoryConfirmDialog by remember { mutableStateOf(false) }
 
     // 시스템 백 버튼 클랙 시 바로 나가지 않고 다이얼로그 표시
     BackHandler(enabled = true) {
@@ -215,18 +219,10 @@ fun SurveyDiameterScreen(
                             fontSize = 18.sp,
                             color = Color(0xFF191F28)
                         )
-                        Text("MH-Master 프로젝트", fontSize = 12.sp, color = Color(0xFF8B95A1))
+                        Text("TERRA DISTO", fontSize = 12.sp, color = Color(0xFF8B95A1))
                     }
                 },
                 navigationIcon = {
-//                    IconButton(onClick = onBackClick) {
-//                        Icon(
-//                            Icons.Rounded.ArrowBackIosNew,
-//                            contentDescription = "뒤로가기",
-//                            modifier = Modifier.size(20.dp)
-//                        )
-//                    }
-
                     IconButton(onClick = { showExitConfirmDialog = true }) {
                         Icon(
                             Icons.Rounded.ArrowBackIosNew,
@@ -236,7 +232,7 @@ fun SurveyDiameterScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { /* 기록 보기 */ }) {
+                    TextButton(onClick = { showHistoryConfirmDialog = true }) {
                         Text("기록", color = Color(0xFF3182F6), fontWeight = FontWeight.Bold)
                     }
                 },
@@ -271,7 +267,7 @@ fun SurveyDiameterScreen(
                                         lidSize = lidSize,
                                         topieValue = topiValue,
                                         chamberMaterial = chamberShape ?: "",
-                                        chamberSize = if (chamberShape == "사각형") "${chamberWidth}x${chamberHeight}" else chamberDiameter,
+                                        chamberSize = if (chamberShape == "사각형") "${chamberWidth} x ${chamberHeight}" else chamberDiameter,
                                         selectedChamberShape = chamberShape ?: "원형",
                                         hasLadder = hasLadder,
                                         hasInverter = hasInvert,
@@ -365,6 +361,66 @@ fun SurveyDiameterScreen(
                     }
                 },
                 dismissButton = null
+            )
+        }
+
+        if (showHistoryConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { showHistoryConfirmDialog = false },
+                shape = RoundedCornerShape(24.dp),
+                containerColor = Color.White,
+                title = {
+                    Text(
+                        text = "기록 화면으로 이동할까요?",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF191F28)
+                    )
+                },
+                text = {
+                    Text(
+                        text = "현재 측정 진행 중이에요. 측정 내역 화면으로 이동하시겠어요?\n저장되지 않은 데이터는 지워집니다.",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF4E5968),
+                        lineHeight = 22.sp
+                    )
+                },
+                confirmButton = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // 이동하기 버튼
+                        Button(
+                            onClick = {
+                                showHistoryConfirmDialog = false
+                                onHistoryClick() // 기록 화면으로 이동
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                        ) {
+                            Text("이동하기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        // 닫기 버튼
+                        TextButton(
+                            onClick = { showHistoryConfirmDialog = false },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(
+                                "닫기",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF8B95A1)
+                            )
+                        }
+                    }
+                }
             )
         }
 
@@ -732,10 +788,16 @@ fun SurveyDiameterScreen(
                                     OutlinedTextField(
                                         value = chamberWidth,
                                         onValueChange = { chamberWidth = it },
-                                        placeholder = { Text("가로 (m)") },
+                                        placeholder = { Text("가로 (m)", color = Color(0xFF8B95A1)) },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(12.dp),
-                                        singleLine = true
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = Color(0xFFB0B8C1),
+                                            unfocusedContainerColor = Color(0xFFF2F4F6),
+                                            focusedBorderColor = Color.Transparent,
+                                            unfocusedBorderColor = Color.Transparent
+                                        )
                                     )
                                     MeasureButton(
                                         onClick = {
@@ -760,10 +822,16 @@ fun SurveyDiameterScreen(
                                     OutlinedTextField(
                                         value = chamberHeight,
                                         onValueChange = { chamberHeight = it },
-                                        placeholder = { Text("세로 (m)") },
+                                        placeholder = { Text("세로 (m)", color = Color(0xFF8B95A1)) },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(12.dp),
-                                        singleLine = true
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = Color(0xFFF2F4F6),
+                                            unfocusedContainerColor = Color(0xFFF2F4F6),
+                                            focusedBorderColor = Color.Transparent,
+                                            unfocusedBorderColor = Color.Transparent
+                                        )
                                     )
                                     MeasureButton(
                                         onClick = {
@@ -783,7 +851,7 @@ fun SurveyDiameterScreen(
                                     "지름 규격",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF8B95A1)
+                                    color = Color(0xFF4E5968)
                                 )
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1257,7 +1325,8 @@ fun PreviewSurveyDiameterScreen() {
             distoMeasuredDistance = "1.234",
             measurementDao = dummyDao,
             onMeasureClick = {},
-            onBackClick = {}
+            onBackClick = {},
+            onHistoryClick = {}
         )
     }
 }

@@ -300,7 +300,8 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                 distoMeasuredDistance = quickDistanceState.value, // 실시간 측정값
                                 measurementDao = database.measurementDao(),
                                 onMeasureClick = { Thread { mainYetiController.sendDistanceCommand() }.start() }, // 측정 명령 전송 로직
-                                onBackClick = { currentScreen = "main" }
+                                onBackClick = { currentScreen = "main" },
+                                onHistoryClick = { currentScreen = "history" }
                             )
                         }
                         "project_list" -> ProjectListScreen(projectViewModel = projectViewModel, distoViewModel = distoViewModel, onNavigateToSurvey = { currentScreen = "survey" }, onCreateClick = { previousScreen = "project_list"; currentScreen = "create_project" }, onConnectClick = { currentScreen = "connect" })

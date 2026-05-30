@@ -15,7 +15,7 @@ interface ProjectDao {
 
     // 새로운 프로젝트를 삽입합니다. (중복 시 덮어쓰기)
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProject(project: Project)
+    suspend fun insertProject(project: Project): Long
 
     // 프로젝트를 삭제합니다.
     @Delete

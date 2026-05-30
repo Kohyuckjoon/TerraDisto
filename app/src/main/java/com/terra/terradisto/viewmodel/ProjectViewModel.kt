@@ -50,7 +50,12 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
                 description = desc,
                 createdAt = date
             )
-            repository.insert(newProject)
+            // 1. DB에 저장하고 생성된 ID를 받아옴
+            val generatedId = repository.insert(newProject)
+
+            // 2. 생성된 ID가 포함된 객체로 현재 선택된 프로젝트 업데이트
+            val projectWithId = newProject.copy(id = generatedId)
+            _selectedProject.value = projectWithId
         }
     }
 }

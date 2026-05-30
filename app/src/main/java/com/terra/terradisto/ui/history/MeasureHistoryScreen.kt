@@ -23,11 +23,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -106,31 +108,68 @@ fun MeasureHistoryScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(), // 중복 padding 제거
-                contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(items) { item ->
-                    MeasureHistoryItem(
-                        item = item,
-                        onDeleteClick = { targetItem ->
-                            scope.launch {
-                                db.measurementDao().deleteMeasurement(targetItem)
-                                Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        onEditClick = { targetItem ->
-                            selectedItemForEdit = targetItem
-                            showEditDialog = true
-                        },
-                        onDetailClick = { targetItem ->
-                            selectedItemForDetail = targetItem
-                            showDetailDialog = true
-                        }
+
+            if (items.isEmpty()) {
+                // 데이터가 없을 때 표시될 UI
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "데이터 없음",
+                        modifier = Modifier.size(64.dp),
+                        tint = Color(0xFFC1C7CD)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "아직 측정된 데이터가 없어요!",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4E5968)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "지금 새로운 측정을 시작해 보세요.",
+                        fontSize = 14.sp,
+                        color = Color(0xFF8B95A1)
                     )
                 }
+            } else {
+                // 데이터가 있을 때 표시될 UI
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(), // 중복 padding 제거
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    itemsIndexed(items) { index, item ->
+                        MeasureHistoryItem(
+                            orderNumber = index + 1,
+                            item = item,
+                            onDeleteClick = { targetItem ->
+                                scope.launch {
+                                    db.measurementDao().deleteMeasurement(targetItem)
+                                    Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onEditClick = { targetItem ->
+                                selectedItemForEdit = targetItem
+                                showEditDialog = true
+                            },
+                            onDetailClick = { targetItem ->
+                                selectedItemForDetail = targetItem
+                                showDetailDialog = true
+                            }
+                        )
+                    }
+                }
             }
+            
+            
+            
+
+
 
             Column(
                 modifier = Modifier
@@ -271,15 +310,16 @@ private fun exportToExcel(
 
     items.forEachIndexed { index, item ->
         val row = sheet.createRow(index + 1)
-        val title = "${item.id}번 측정 데이터"
+        val title = "${index + 1}번 측정 데이터"
 
         val detail = if (item.selectedChamberShape == "사각형") {
             val dims = item.chamberSize.split("x")
-            val w = dims.getOrNull(0) ?: "-"
-            val h = dims.getOrNull(0) ?: "-"
-            "${item.manholeType} / ${item.topieValue}m / ${w}m / ${h}m"
+            val w = dims.getOrNull(0)?.trim() ?: "-"
+            val h = dims.getOrNull(1)?.trim() ?: "-"
+            // 사각형일 경우 가로/세로 각각에 m 단위 추가
+            "${item.manholeType} / ${item.topieValue}m / ${w}m x ${h}m"
         } else {
-            "${item.manholeType} / ${item.topieValue}m / ${item.chamberSize}"
+            "${item.manholeType} / ${item.topieValue}m / ${item.chamberSize}m"
         }
 
         row.createCell(0).setCellValue(title)

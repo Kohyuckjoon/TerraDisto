@@ -46,6 +46,7 @@ import java.util.Locale
 
 @Composable
 fun MeasureHistoryItem(
+    orderNumber: Int,
     item: MeasurementEntity,
     onDeleteClick: (MeasurementEntity) -> Unit,
     onEditClick: (MeasurementEntity) -> Unit,
@@ -73,6 +74,7 @@ fun MeasureHistoryItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ){
+//                Text(text = "${orderNumber}번 측정 데이터")
 //                Text(text = "MH-${item.id.toString().padStart(3, '0')}", )
                 Row (
                     verticalAlignment = Alignment.CenterVertically,
@@ -88,8 +90,8 @@ fun MeasureHistoryItem(
                             )
                     ) {
                         Text(
-                            text = item.id.toString().padStart(3, '0'), // 001, 002 형식으로 패딩
-                            color = Color(0xFF1B64DA), // 진한 파란색 글자
+                            text = orderNumber.toString().padStart(3, '0'),
+                            color = Color(0xFF1B64DA),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -100,7 +102,7 @@ fun MeasureHistoryItem(
                         verticalArrangement = Arrangement.Center
                     ){
                         Text(
-                            text = "${item.id}번 측정 데이터",
+                            text = "${orderNumber}번 측정 데이터",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp)
@@ -238,10 +240,13 @@ fun MeasureHistoryItem(
             Spacer(modifier = Modifier.height(12.dp))
 
             if (item.selectedChamberShape == "사각형") {
-                // "1200 x 800" 형태의 문자열을 잘라서 사용
-                val dimensions = item.chamberSize.split(" x ")
-                val width = dimensions.getOrNull(0) ?: "-"
-                val height = dimensions.getOrNull(1) ?: "-"
+                /**
+                 * 1. "1200 x 800" 형태의 문자열을 잘라서 사용
+                 * 2. 앞뒤 공백 제거(trim)
+                 */
+                val dimensions = item.chamberSize.split(Regex("[xX*]"))
+                val width = dimensions.getOrNull(0)?.trim() ?: "-"
+                val height = dimensions.getOrNull(1)?.trim() ?: "-"
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     InfoBlock("가로", "$width", Modifier.weight(1f))
@@ -298,8 +303,8 @@ fun PreviewMeasureHistoryItem() {
             .padding(16.dp)
     ) {
         MeasureHistoryItem(
+            orderNumber = 1,
             item = sampleItem,
-//            onMenuClick = {}
             onEditClick = {},
             onDeleteClick = {},
             onDetailClick = {}
