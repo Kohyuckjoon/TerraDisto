@@ -27,6 +27,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -199,24 +200,48 @@ fun DistoMainScreen(
                         )
                     },
                     confirmButton = {
-                        Button(
-                            onClick = {
-                                showDistoConnectDialog = false
-                                onConnectClick()
-                            },
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                                .padding(horizontal = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp) // 버튼 사이 간격
                         ) {
-                            Text("연결하러 가기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            // 1. 메인 버튼 (연결하러 가기)
+                            Button(
+                                onClick = {
+                                    showDistoConnectDialog = false
+                                    onConnectClick()
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                            ) {
+                                Text("연결하러 가기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            //  닫기 버튼
+                            TextButton(
+                                onClick = { showDistoConnectDialog = false },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(
+                                    "닫기",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8B95A1)
+                                )
+                            }
                         }
                     }
                 )
             }
 
-            // [추가] 2. 프로젝트 선택 안내 다이얼로그
+            // 프로젝트 선택 안내 다이얼로그
             if (showProjectSelectDialog) {
                 AlertDialog(
                     onDismissRequest = { showProjectSelectDialog = false },
@@ -240,18 +265,42 @@ fun DistoMainScreen(
                         )
                     },
                     confirmButton = {
-                        Button(
-                            onClick = {
-                                showProjectSelectDialog = false
-                                onProjectListClick()
-                            },
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                                .padding(horizontal = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("프로젝트 선택하기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            // 1. 메인 버튼 (프로젝트 선택하기)
+                            Button(
+                                onClick = {
+                                    showProjectSelectDialog = false
+                                    onProjectListClick()
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                            ) {
+                                Text("프로젝트 선택하기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // 2. 닫기 버튼 (보조 버튼)
+                            TextButton(
+                                onClick = { showProjectSelectDialog = false },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(
+                                    "닫기",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8B95A1)
+                                )
+                            }
                         }
                     }
                 )
