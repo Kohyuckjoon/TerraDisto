@@ -1,6 +1,5 @@
 package com.terra.terradisto
 
-import SurveyDiameterScreen
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -32,8 +31,10 @@ import com.terra.terradisto.ui.navigationHostWrapper.NavigationHostWrapper
 import androidx.compose.animation.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.terra.terradisto.data.AppDatabase
+import com.terra.terradisto.data.MeasurementEntity
 
 import com.terra.terradisto.ui.ProjectListScreen
+import com.terra.terradisto.ui.SurveyDiameterScreen
 
 import com.terra.terradisto.ui.history.MeasureHistoryScreen
 import com.terra.terradisto.ui.main.QuickSurveyScreen
@@ -61,6 +62,9 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // DB 인스턴스 미리 생성 (여러 곳에서 사용)
+        val database = AppDatabase.getDatabase(applicationContext)
 
         findDevices = com.terra.terradisto.distosdkapp.device.FindDevices(applicationContext, object : com.terra.terradisto.distosdkapp.device.AvailableDevicesListener {
             override fun onAvailableDeviceFound() {}
@@ -291,12 +295,11 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         "survey" -> {
                             // 1. 필요한 상태값들을 MainActivity 내에서 가져옵니다
                             SurveyDiameterScreen(
+                                currentProjectId = selectedProject?.id ?: -1L,
                                 isDistoConnected = viewModel.isDistoConnected, // 기존 연결 상태
                                 distoMeasuredDistance = quickDistanceState.value, // 실시간 측정값
-                                onMeasureClick = {
-                                    // 측정 명령 전송 로직
-                                    Thread { mainYetiController.sendDistanceCommand() }.start()
-                                },
+                                measurementDao = database.measurementDao(),
+                                onMeasureClick = { Thread { mainYetiController.sendDistanceCommand() }.start() }, // 측정 명령 전송 로직
                                 onBackClick = { currentScreen = "main" }
                             )
                         }
@@ -304,7 +307,10 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         "history" -> {
                             val context = androidx.compose.ui.platform.LocalContext.current
                             val db = AppDatabase.getDatabase(context)
-                            val items by db.measurementDao().getMesurementByProject(selectedProject?.id ?: -1L).collectAsState(initial = emptyList())
+//                            val items by db.measurementDao().getMesurementByProject(selectedProject?.id ?: -1L).collectAsState(initial = emptyList())
+//                            MeasureHistoryScreen(items = items, onBackClick = { currentScreen = "main" })
+
+                            val items by database.measurementDao().getMesurementByProject(selectedProject?.id ?: -1L).collectAsState(initial = emptyList<MeasurementEntity>())
                             MeasureHistoryScreen(items = items, onBackClick = { currentScreen = "main" })
                         }
                     }

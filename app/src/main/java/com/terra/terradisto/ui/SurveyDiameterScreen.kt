@@ -1,4 +1,8 @@
+package com.terra.terradisto.ui
+
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.expandVertically
@@ -16,21 +20,31 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Construction
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.terra.terradisto.data.MeasurementDao
+import com.terra.terradisto.data.MeasurementEntity
 import com.terra.terradisto.data.PipeUiItem
+import com.terra.terradisto.ui.components.PipeDirectionDialog
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 //data class PipeUiItem(
 //    val id: Int = 0, // 기본값 추가
@@ -46,8 +60,10 @@ enum class ActiveTarget {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SurveyDiameterScreen(
+    currentProjectId: Long,
     isDistoConnected: Boolean,
     distoMeasuredDistance: String,
+    measurementDao: MeasurementDao, // 저장 기능 추가
     onMeasureClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -89,12 +105,21 @@ fun SurveyDiameterScreen(
 
     // 관경 데이터 리스트 관리
     val pipeList = remember { mutableStateListOf(PipeUiItem(id = 0)) }
-
     var activePipeTarget by remember { mutableStateOf<Pair<Int, String>?>(null) } // 특정 관의 관경/높이 타겟팅을 위해 인덱스 활용
     var activeTarget by remember { mutableStateOf(ActiveTarget.NONE) } // 측정 관련 상태
 
     val buttonTextState = remember { mutableStateOf("측정") }
     var lidSize by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() } // 팝업 메세지용 상태 값
+    var showSaveSuccessDialog by remember { mutableStateOf(false) } // 저장 성공 알림 다이얼로그 상태 값
+
+    // 관 방향 다이얼로그 관련 상태
+    var showDirectionDialog by remember { mutableStateOf(false) }
+    var activePipeIndexForDialog by remember { mutableIntStateOf(0) }
+
 
     // 연속 측정 로직
     LaunchedEffect(isMeasuring) {
@@ -167,6 +192,7 @@ fun SurveyDiameterScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }, // Snackbar 추가
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -210,12 +236,126 @@ fun SurveyDiameterScreen(
             ){
                 Box(modifier = Modifier.padding(16.dp)){
                     SaveButton(onClick = {
-                        Log.d("SurveyDebug", "저장 버튼 클릭됨")
+                        if (manholeName.trim().isEmpty()) {
+                            // 1. 맨홀명 필수 체크
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("맨홀명을 입력해주세요.")
+                            }
+                        } else {
+                            coroutineScope.launch {
+                                try{
+                                    val measurement = MeasurementEntity(
+                                        projectId = currentProjectId,
+                                        manholeType = manholeName,
+                                        lidMaterial = selectedMaterial,
+                                        lidSize = lidSize,
+                                        topieValue = topiValue,
+                                        chamberMaterial = chamberShape ?: "",
+                                        chamberSize = if (chamberShape == "사각형") "${chamberWidth}x${chamberHeight}" else chamberDiameter,
+                                        selectedChamberShape = chamberShape ?: "원형",
+                                        hasLadder = hasLadder,
+                                        hasInverter = hasInvert,
+                                        anomalyMemo = memo,
+                                        pipeList = pipeList.toList(),
+                                        timestamp = System.currentTimeMillis()
+                                    )
+
+                                    measurementDao.insertMeasurement(measurement)
+
+                                    // 저장이 완료되면 모든 필드 초기화
+                                    manholeName = ""
+                                    selectedMaterial = "선택하세요"
+                                    isCustomInput = false
+                                    customMaterial = ""
+                                    lidSize = ""
+                                    topiValue = ""
+                                    chamberWidth = ""
+                                    chamberHeight = ""
+                                    chamberDiameter = ""
+                                    memo = ""
+                                    hasLadder = false
+                                    hasInvert = false
+                                    pipeList.clear()
+                                    pipeList.add(PipeUiItem(id = 0))
+                                    isMeasuring = false
+                                    activeTarget = ActiveTarget.NONE
+                                    activePipeTarget = null
+                                    maxDistance = 0.0
+                                    decreaseCount = 0
+                                    trendingUp = false
+
+                                    showSaveSuccessDialog = true // 상태값 변경
+                                } catch (e: Exception) {
+                                    if (e is CancellationException) throw e
+
+                                    Log.e("SurveyDebug", "Error saving survey data : ", e)
+                                    Toast.makeText(context, "저장 중 오류가 발생했습니다.\n${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
                     })
                 }
             }
         }
     ) { padding ->
+        if(showSaveSuccessDialog){
+            AlertDialog(
+                onDismissRequest = { showSaveSuccessDialog = false },
+                shape = RoundedCornerShape(24.dp), //  특유의 둥글고 세련된 느낌 적용
+                containerColor = Color.White,
+                title = {
+                    Text(
+                        text = "저장이 완료되었어요",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF191F28) //  주요 다크 그레이
+                    )
+                },
+                text = {
+                    Text(
+                        text = "데이터가 안전하게 저장되었습니다.\n" +
+                                "측정 내역 화면에서 확인하실 수 있어요.",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF4E5968),
+                        lineHeight = 22.sp
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { showSaveSuccessDialog = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3182F6),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = "확인",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                dismissButton = null
+            )
+        }
+
+        // 관 방향 선택 다이얼로그
+        if (showDirectionDialog) {
+            PipeDirectionDialog(
+                onDismiss = { showDirectionDialog = false },
+                onSelect = { direction ->
+                    // 선택한 번호를 해당 관의 direction에 반영
+                    pipeList[activePipeIndexForDialog] = pipeList[activePipeIndexForDialog].copy(direction = direction)
+                    showDirectionDialog = false
+                }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -603,28 +743,40 @@ fun SurveyDiameterScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     pipeList.forEachIndexed { index, pipe ->
-                        PipeItemForm(
-                            index = index,
-                            pipe = pipe,
-                            onUpdate = { updatedPipe -> pipeList[index] = updatedPipe },
-                            onRemove = { pipeList.removeAt(index) },
-                            showRemove = pipeList.size > 1,
-                            onMeasure = { type ->
-                                if (type == "diameter") {
-                                    Log.d("SurveyDebug_01", "타입: $type")
-                                    activeTarget = ActiveTarget.PIPE_SIZE
-                                } else {
-                                    Log.d("SurveyDebug_02", "타입: $type")
-                                    activeTarget = ActiveTarget.PIPE_HEIGHT_SIZE
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp), // 미세한 그림자로 떠 있는 느낌
+                            border = BorderStroke(1.dp, Color(0xFFD7E0E8).copy(alpha = 0.5f))
+                        ) {
+                            PipeItemForm(
+                                index = index,
+                                pipe = pipe,
+                                onUpdate = { updatedPipe -> pipeList[index] = updatedPipe },
+                                onRemove = { pipeList.removeAt(index) },
+                                showRemove = pipeList.size > 1,
+                                onMeasure = { type ->
+                                    if (type == "diameter") {
+                                        Log.d("SurveyDebug_01", "타입: $type")
+                                        activeTarget = ActiveTarget.PIPE_SIZE
+                                    } else {
+                                        Log.d("SurveyDebug_02", "타입: $type")
+                                        activeTarget = ActiveTarget.PIPE_HEIGHT_SIZE
+                                    }
+                                    activePipeTarget = Pair(index, type)
+                                    isMeasuring = !isMeasuring
+                                    if (isMeasuring) onMeasureClick()
+                                },
+                                // 측정 상태를 각 필드에 맞게 명확히 전달
+                                isMeasuringDiameter = (isMeasuring && activeTarget == ActiveTarget.PIPE_SIZE && activePipeTarget == Pair(index, "diameter")),
+                                isMeasuringHeight = (isMeasuring && activeTarget == ActiveTarget.PIPE_HEIGHT_SIZE && activePipeTarget == Pair(index, "height")),
+                                onDirectionClick = {
+                                    activePipeIndexForDialog = index
+                                    showDirectionDialog = true
                                 }
-                                activePipeTarget = Pair(index, type)
-                                isMeasuring = !isMeasuring
-                                if (isMeasuring) onMeasureClick()
-                            },
-                            // 측정 상태를 각 필드에 맞게 명확히 전달
-                            isMeasuringDiameter = (isMeasuring && activeTarget == ActiveTarget.PIPE_SIZE && activePipeTarget == Pair(index, "diameter")),
-                            isMeasuringHeight = (isMeasuring && activeTarget == ActiveTarget.PIPE_HEIGHT_SIZE && activePipeTarget == Pair(index, "height"))
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -781,7 +933,8 @@ fun PipeItemForm(
     showRemove: Boolean,
     onMeasure: (String) -> Unit,
     isMeasuringDiameter: Boolean,
-    isMeasuringHeight: Boolean
+    isMeasuringHeight: Boolean,
+    onDirectionClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -796,9 +949,25 @@ fun PipeItemForm(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("관 ${index + 1}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF191F28))
+//            if (showRemove) {
+//                TextButton(onClick = onRemove) {
+//                    Text("삭제", color = Color(0xFFF33131), fontSize = 14.sp)
+//                }
+//            }
+
             if (showRemove) {
-                TextButton(onClick = onRemove) {
-                    Text("삭제", color = Color(0xFFF33131), fontSize = 14.sp)
+                IconButton(
+                    onClick = onRemove,
+                    modifier = Modifier
+                        .background(Color(0xFFFFE8E8), CircleShape) // 옅은 빨간색 배경 (토스 스타일)
+                        .size(28.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.Remove, // 마이너스 아이콘 사용
+                        contentDescription = "삭제",
+                        tint = Color(0xFFF33131), // 강렬한 빨간색
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
@@ -806,7 +975,50 @@ fun PipeItemForm(
         Spacer(modifier = Modifier.height(16.dp))
 
         // 방향 입력
-        PipeInputField("관 방향", "선택 버튼을 눌러주세요", pipe.direction) { onUpdate(pipe.copy(direction = it)) }
+//        PipeInputField("관 방향", "선택 버튼을 눌러주세요", pipe.direction) { onUpdate(pipe.copy(direction = it)) }
+        // 관 방향
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Text("관 방향", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF8B95A1))
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 텍스트 필드 (읽기 전용 혹은 표시용)
+                OutlinedTextField(
+                    value = pipe.direction,
+                    onValueChange = { onUpdate(pipe.copy(direction = it)) },
+                    placeholder = { Text("선택 버튼을 눌러주세요", color = Color(0xFFB0B8C1)) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFFF2F4F6),
+                        unfocusedContainerColor = Color(0xFFF2F4F6),
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent
+                    ),
+                    singleLine = true
+                )
+
+                Button(
+                    onClick = onDirectionClick,
+                    modifier = Modifier
+                        .height(56.dp)
+                        .width(105.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE8F3FF), // 옅은 파란색 배경
+                        contentColor = Color(0xFF3182F6)    // 강한 파란색 글자
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(0.dp)
+                ) {
+                    Icon(Icons.Rounded.Explore, null, Modifier.size(18.dp)) // 나침반 아이콘 사용
+                    Spacer(Modifier.width(4.dp))
+                    Text("선택", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
 
         // 관경 입력
         Row(
@@ -888,13 +1100,23 @@ fun SaveButton(onClick: () -> Unit) {
     }
 }
 
-@Preview(showBackground = true, widthDp = 360, heightDp = 700)
+@Preview(showBackground = true, device = "spec:width=1080px, height=2340px, dpi=440")
 @Composable
 fun PreviewSurveyDiameterScreen() {
     MaterialTheme {
+        // 프리뷰를 위한 가짜(Mock) DAO 생성
+        val dummyDao = object : MeasurementDao {
+            override suspend fun insertMeasurement(measurement: MeasurementEntity) {}
+            override fun getMesurementByProject(projectId: Long) = kotlinx.coroutines.flow.flowOf(emptyList<MeasurementEntity>())
+            override suspend fun updateMeasurement(measurement: MeasurementEntity) {}
+            override suspend fun deleteMeasurement(measurement: MeasurementEntity) {}
+        }
+
         SurveyDiameterScreen(
+            currentProjectId = 1L,
             isDistoConnected = true,
-            distoMeasuredDistance = "0.650",
+            distoMeasuredDistance = "1.234",
+            measurementDao = dummyDao,
             onMeasureClick = {},
             onBackClick = {}
         )

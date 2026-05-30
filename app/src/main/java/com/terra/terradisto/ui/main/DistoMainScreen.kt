@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -20,14 +21,24 @@ import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.BluetoothDisabled
 import androidx.compose.material.icons.rounded.Construction
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.terra.terradisto.BottomActionArea
 import com.terra.terradisto.HeaderSection
 import com.terra.terradisto.MainActionButton
@@ -46,6 +57,10 @@ fun DistoMainScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState() // 스크롤 상태 정의
+
+    // 다이얼로그 상태 관리 변수
+    var showDistoConnectDialog by remember { mutableStateOf(false) }
+    var showProjectSelectDialog by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -101,7 +116,13 @@ fun DistoMainScreen(
                     modifier = Modifier.height(170.dp), //  글자 가독성이 가장 완벽한 높이 확보
                     onClick = {
                         /* 블루투스 연결된 상태면 간편 측정 화면, 미 연결 상태면 Disto 화면으로 이동 */
-                        if (isDistoConnected) onQuickSurveyClick() else onConnectClick()
+//                        if (isDistoConnected) onQuickSurveyClick() else onConnectClick()
+
+                        if (!isDistoConnected) {
+                            showDistoConnectDialog = true // 기기 연결 팝업
+                        } else {
+                            onQuickSurveyClick() // 간편 측정 화면으로 연결
+                        }
                     }
                 )
 
@@ -117,12 +138,20 @@ fun DistoMainScreen(
 //                    }
 
                     onClick = {
+//                        if (!isDistoConnected) {
+//                            onConnectClick()
+//                        } else if (selectedProjectName == null) {
+//                            // 프로젝트 선택이 안 된 경우 리스트로 안내
+//                            Toast.makeText(context, "측정할 프로젝트를 먼저 선택해주세요.", Toast.LENGTH_SHORT).show()
+//                            onProjectListClick()
+//                        } else {
+//                            onSurveyClick()
+//                        }
+
                         if (!isDistoConnected) {
-                            onConnectClick()
+                            showDistoConnectDialog = true // 기기 연결 팝업
                         } else if (selectedProjectName == null) {
-                            // [추가] 프로젝트 선택이 안 된 경우 리스트로 안내
-                            Toast.makeText(context, "측정할 프로젝트를 먼저 선택해주세요.", Toast.LENGTH_SHORT).show()
-                            onProjectListClick()
+                            showProjectSelectDialog = true // 프로젝트 선택 팝업
                         } else {
                             onSurveyClick()
                         }
@@ -146,6 +175,87 @@ fun DistoMainScreen(
                 onCreateClick = onCreateProjectClick,
                 onProjectListClick = onProjectListClick // [맵핑] 리스트 화면 이동 연결
             )
+
+            if (showDistoConnectDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDistoConnectDialog = false },
+                    shape = RoundedCornerShape(24.dp),
+                    containerColor = Color.White,
+                    title = {
+                        Text(
+                            text = "Disto 연결이 필요해요",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF191F28)
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "정밀 측량을 시작하려면\nDisto 기기를 먼저 연결해야 해요.",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF4E5968),
+                            lineHeight = 22.sp
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showDistoConnectDialog = false
+                                onConnectClick()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                        ) {
+                            Text("연결하러 가기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                )
+            }
+
+            // [추가] 2. 프로젝트 선택 안내 다이얼로그
+            if (showProjectSelectDialog) {
+                AlertDialog(
+                    onDismissRequest = { showProjectSelectDialog = false },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                    containerColor = Color.White,
+                    title = {
+                        Text(
+                            text = "프로젝트를 선택해 주세요",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF191F28)
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "정밀 측량을 시작하려면\n측정할 프로젝트를 먼저 선택해 주세요.",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF4E5968),
+                            lineHeight = 22.sp
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showProjectSelectDialog = false
+                                onProjectListClick()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                        ) {
+                            Text("프로젝트 선택하기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                )
+            }
         }
     }
 }

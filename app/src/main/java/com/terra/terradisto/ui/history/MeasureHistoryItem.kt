@@ -232,19 +232,10 @@ fun MeasureHistoryItem(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoBlock("맨홀 타입", item.manholeType, Modifier.weight(1f))
-                InfoBlock("심도", "${item.topieValue} m", Modifier.weight(1f))
+                InfoBlock("심도", "${item.topieValue}", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
-//            Row (modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)){
-//                InfoBlock("직경", "${item.lidSize} m", Modifier.weight(1f))
-//                if (item.selectedChamberShape == "사각형") {
-//                    InfoBlock("세로", "${item.lidMaterial} m", Modifier.weight(1f))
-//                } else {
-//                    Spacer(modifier = Modifier.weight(1f))
-//                }
-//            }
 
             if (item.selectedChamberShape == "사각형") {
                 // "1200 x 800" 형태의 문자열을 잘라서 사용
