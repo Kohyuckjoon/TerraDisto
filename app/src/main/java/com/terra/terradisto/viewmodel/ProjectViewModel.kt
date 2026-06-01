@@ -30,32 +30,48 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
     }
 
     // 프로젝트 삭제 함수
+//    fun deleteProject(project: Project) {
+//        viewModelScope.launch {
+//            repository.delete(project)
+//
+//            // 삭제하려는 프로젝트가 현재 선택된 프로젝트라면 선택 해제
+//            if (_selectedProject.value?.id == project.id) {
+//                _selectedProject.value = null
+//            }
+//        }
+//    }
     fun deleteProject(project: Project) {
         viewModelScope.launch {
-            repository.delete(project)
-
-            // 삭제하려는 프로젝트가 현재 선택된 프로젝트라면 선택 해제
-            if (_selectedProject.value?.id == project.id) {
-                _selectedProject.value = null
+            try {
+                repository.delete(project)
+                // 삭제하려는 프로젝트가 현재 선택된 프로젝트라면 선택 해제
+                if (_selectedProject.value?.id == project.id) {
+                    _selectedProject.value = null
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
 
     // 프로젝트 생성 로직 (기존 유지)
-    fun insertProject(name: String, location: String, desc: String, date: String) {
-        viewModelScope.launch {
+    suspend fun insertProject(name: String, location: String, desc: String, date: String): Boolean {
+        return try {
             val newProject = Project(
                 projectName = name,
                 location = location,
                 description = desc,
                 createdAt = date
             )
-            // 1. DB에 저장하고 생성된 ID를 받아옴
+            // 저장이 완료될 때까지 여기서 기다립니다.
             val generatedId = repository.insert(newProject)
 
-            // 2. 생성된 ID가 포함된 객체로 현재 선택된 프로젝트 업데이트
             val projectWithId = newProject.copy(id = generatedId)
             _selectedProject.value = projectWithId
+            true // 성공 반환
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false // 실패 시 크래시 대신 false 반환
         }
     }
 }

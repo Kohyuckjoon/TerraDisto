@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +26,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,27 +60,42 @@ fun DistoMainScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState() // 스크롤 상태 정의
-
     // 다이얼로그 상태 관리 변수
     var showDistoConnectDialog by remember { mutableStateOf(false) }
     var showProjectSelectDialog by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF2F4F6)
-    ) {
+    Scaffold(
+        containerColor = Color(0xFFF2F4F6),
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 13.dp)
+            ) {
+                BottomActionArea(
+                    onStartClick = onConnectClick,
+                    onCreateClick = onCreateProjectClick,
+                    onProjectListClick = onProjectListClick
+                )
+            }
+        }
+    ){ paddingValues ->
+        // 메인 컨텐츠 배치 (상단 고정 헤더 + 중앙 스크롤 리스트)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState) // 글자가 찌그러지지 않고 자연스럽게 스크롤되도록 변경
-                .padding(horizontal = 24.dp, vertical = 3.dp)
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            // 상단 고정 영역 (스크롤 안 됨)
+            Spacer(modifier = Modifier.height(20.dp))
+
             HeaderSection(
                 selectedProjectName = selectedProjectName,
                 onProjectListClick = onProjectListClick
             )
-            Spacer(modifier = Modifier.height(32.dp))
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // 상단 상태 영역
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -103,79 +120,72 @@ fun DistoMainScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Column(
+            LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(17.dp)
             ) {
-                MainActionButton(
-                    title = "간편 측정",
-                    subtitle = "항목 없이 바로 거리만 측정",
-                    icon = Icons.Rounded.Construction,
-                    containerColor = if (isDistoConnected) Color(0xFF00B67A) else Color(0xFFADB5BD),
-                    modifier = Modifier.height(170.dp), //  글자 가독성이 가장 완벽한 높이 확보
-                    onClick = {
-                        /* 블루투스 연결된 상태면 간편 측정 화면, 미 연결 상태면 Disto 화면으로 이동 */
-//                        if (isDistoConnected) onQuickSurveyClick() else onConnectClick()
-
-                        if (!isDistoConnected) {
-                            showDistoConnectDialog = true // 기기 연결 팝업
-                        } else {
-                            onQuickSurveyClick() // 간편 측정 화면으로 연결
+                item {
+                    MainActionButton(
+                        title = "간편 측정",
+                        subtitle = "항목 없이 바로 거리만 측정",
+                        icon = Icons.Rounded.Construction,
+                        containerColor = if (isDistoConnected) Color(0xFF00B67A) else Color(0xFFADB5BD),
+                        modifier = Modifier.height(170.dp),
+                        onClick = {
+                            /* 블루투스 연결된 상태면 간편 측정 화면, 미 연결 상태면 Disto 화면으로 이동 */
+                            if (!isDistoConnected) {
+                                showDistoConnectDialog = true // 기기 연결 팝업
+                            } else {
+                                onQuickSurveyClick() // 간편 측정 화면으로 연결
+                            }
                         }
-                    }
-                )
+                    )
+                }
 
-                MainActionButton(
-                    title = "정밀 측정",
-                    subtitle = "모든 항목 상세 기록하기",
-                    icon = Icons.Rounded.Add,
-//                    containerColor = if (isDistoConnected) Color(0xFF3182F6) else Color(0xFFADB5BD),
-                    containerColor = if (isDistoConnected && selectedProjectName != null) Color(0xFF3182F6) else Color(0xFFADB5BD),
-                    modifier = Modifier.height(170.dp), //  간편 측정과 대칭을 이루도록 고정 높이 적용
-//                    onClick = {
-//                        if (isDistoConnected) onSurveyClick() else onConnectClick()
-//                    }
+                item {
+                    MainActionButton(
+                        title = "정밀 측정",
+                        subtitle = "모든 항목 상세 기록하기",
+                        icon = Icons.Rounded.Add,
+                        containerColor = if (isDistoConnected && selectedProjectName != null) Color(0xFF3182F6) else Color(0xFFADB5BD),
+                        modifier = Modifier.height(170.dp), //  간편 측정과 대칭을 이루도록 고정 높이 적용
 
-                    onClick = {
-//                        if (!isDistoConnected) {
-//                            onConnectClick()
-//                        } else if (selectedProjectName == null) {
-//                            // 프로젝트 선택이 안 된 경우 리스트로 안내
-//                            Toast.makeText(context, "측정할 프로젝트를 먼저 선택해주세요.", Toast.LENGTH_SHORT).show()
-//                            onProjectListClick()
-//                        } else {
-//                            onSurveyClick()
-//                        }
-
-                        if (!isDistoConnected) {
-                            showDistoConnectDialog = true // 기기 연결 팝업
-                        } else if (selectedProjectName == null) {
-                            showProjectSelectDialog = true // 프로젝트 선택 팝업
-                        } else {
-                            onSurveyClick()
+                        onClick = {
+                            if (!isDistoConnected) {
+                                showDistoConnectDialog = true // 기기 연결 팝업
+                            } else if (selectedProjectName == null) {
+                                showProjectSelectDialog = true // 프로젝트 선택 팝업
+                            } else {
+                                onSurveyClick()
+                            }
                         }
-                    }
-                )
+                    )
+                }
 
-                MainActionButton(
-                    title = "데이터 보기",
-                    subtitle = "기록된 측량 내역 확인",
-                    icon = Icons.Rounded.BarChart,
-                    containerColor = Color(0xFF4E5968),
-                    modifier = Modifier.height(170.dp), //  일체감을 주는 높이 매핑으로 시각적 안정감 극대화
-                    onClick = onHistoryClick
-                )
+                item {
+                    MainActionButton(
+                        title = "데이터 보기",
+                        subtitle = "기록된 측량 내역 확인",
+                        icon = Icons.Rounded.BarChart,
+                        containerColor = Color(0xFF4E5968),
+                        modifier = Modifier.height(170.dp),
+                        onClick = onHistoryClick
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
             // 하단 버튼 영역 연결
-            BottomActionArea(
-                onStartClick = onConnectClick,
-                onCreateClick = onCreateProjectClick,
-                onProjectListClick = onProjectListClick // [맵핑] 리스트 화면 이동 연결
-            )
+//            BottomActionArea(
+//                onStartClick = onConnectClick,
+//                onCreateClick = onCreateProjectClick,
+//                onProjectListClick = onProjectListClick // 리스트 화면 이동 연결
+//            )
 
             if (showDistoConnectDialog) {
                 AlertDialog(
@@ -308,7 +318,6 @@ fun DistoMainScreen(
         }
     }
 }
-
 
 @Preview(name = "연결 완료 상태", showBackground = true)
 @Composable

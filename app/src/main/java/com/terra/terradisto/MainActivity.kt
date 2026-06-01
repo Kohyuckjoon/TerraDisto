@@ -29,6 +29,7 @@ import com.terra.terradisto.ui.main.DistoMainScreen
 import com.terra.terradisto.ui.project.CreateProjectScreen
 import com.terra.terradisto.ui.navigationHostWrapper.NavigationHostWrapper
 import androidx.compose.animation.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.terra.terradisto.data.AppDatabase
 import com.terra.terradisto.data.MeasurementEntity
@@ -187,8 +188,6 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         }
                     }
                 }
-
-
 
                 // 시스템 뒤로가기 버튼
                 BackHandler(enabled = currentScreen != "main") {
@@ -364,7 +363,7 @@ fun HeaderSection(
         Column {
             Text(
                 "Disto Survey",
-                fontSize = 26.sp,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF191F28),
                 letterSpacing = (-0.5).sp
@@ -376,41 +375,61 @@ fun HeaderSection(
                 fontWeight = FontWeight.Medium
             )
         }
+
+        // 프로젝트 선택 상태
         Surface(
             modifier = Modifier
+                .widthIn(max = 130.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .clickable { onProjectListClick() }, //우상단 프로젝트 영역 클릭하면 프로젝트 리스트 화면으로 이동되게 변경
-//            color = Color.White,
-            color = if (selectedProjectName != null) Color(0xFFE8F3FF) else Color(0xFFF2F4F6),
-            border = if (selectedProjectName != null) null else BorderStroke(1.dp, Color(0xFFE5E8EB))
+                .clickable { onProjectListClick() } //우상단 프로젝트 영역 클릭하면 프로젝트 리스트 화면으로 이동되게 변경
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = if (selectedProjectName != null) Color(0xFFE8F3FF) else Color.White,
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (selectedProjectName != null) Color(0xFF3182F6) else Color(0xFFE5E8EB)
+            )
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(horizontalAlignment = Alignment.Start) {
+                Column(modifier = Modifier.weight(1f, fill = false)) { // 텍스트가 길어지면 말줄임(...) 처리 방어
                     Text(
-                        "현재 프로젝트",
+                        text = "현재 프로젝트",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (selectedProjectName != null) Color(0xFF1B64D1) else Color(0xFF8B95A1), /* 상단 라벨 톤 매칭 */
+                        color = if (selectedProjectName != null) Color(0xFF3182F6) else Color(0xFF8B95A1),
                         letterSpacing = (-0.2).sp
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = selectedProjectName ?: "목록 선택",
+                        text = selectedProjectName ?: "선택 안 됨",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (selectedProjectName != null) Color(0xFF3182F6) else Color(0xFF4E5968),
-                        maxLines = 1,
+                        color = if (selectedProjectName != null) Color(0xFF191F28) else Color(0xFFB0B8C1),
+                        overflow = TextOverflow.Ellipsis, //
                         letterSpacing = (-0.3).sp
                     )
                 }
-                Icon(
-                    Icons.Rounded.ChevronRight,
-                    null,
-                    tint = Color(0xFFB0B8C1),
-                    modifier = Modifier.size(16.dp)
-                )
+
+                // 대형 기기나 현장에서도 터치 실수를 방지하는 둥근 백그라운드가 감싸진 우측 화살표
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(Color(0xFFF2F4F6), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = Color(0xFF6B7684),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }

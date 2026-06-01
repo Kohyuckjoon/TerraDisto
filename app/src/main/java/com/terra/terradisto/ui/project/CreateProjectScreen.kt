@@ -1,5 +1,6 @@
 package com.terra.terradisto.ui.project
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,10 +40,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,6 +58,8 @@ import java.util.Locale
 import com.terra.terradisto.ui.components.InputCard
 import com.terra.terradisto.ui.components.InputField
 import com.terra.terradisto.viewmodel.ProjectViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +71,8 @@ fun CreateProjectScreen(
     var location by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var currentDate = remember { SimpleDateFormat("yyyy년 M월 d일", Locale.KOREA).format(Date()) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope() // 클릭 이벤트 내에서 비동기 delay 및 안전한 화면 이동을 제어할 코루틴 스코프 확보
 
     Scaffold(
         topBar = {
@@ -92,9 +99,20 @@ fun CreateProjectScreen(
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 32.dp)
             ) {
                 Button(
-                    onClick = { /* 생성 로직 */
-                        projectViewModel.insertProject(projectName, location, description, currentDate)
-                        onBack() // 저장 후 이전 화면으로 이동
+                    onClick = {
+                        coroutineScope.launch {
+                            val isSuccess = projectViewModel.insertProject(projectName, location, description, currentDate)
+                            if (isSuccess){
+                                Toast.makeText(context, "새 프로젝트가 생성되었습니다.", Toast.LENGTH_SHORT).show()
+                                delay(600)
+                                onBack() // 안전한 스레드 상에서 메인 화면으로 전환 호출
+                            } else {
+                                Toast.makeText(context, "저장 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                            }
+
+//                            projectViewModel.insertProject(projectName, location, description, currentDate)
+
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()

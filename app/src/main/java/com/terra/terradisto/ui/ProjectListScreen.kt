@@ -1,7 +1,5 @@
 package com.terra.terradisto.ui
 
-import android.R
-import android.widget.Space
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -37,16 +35,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.terra.terradisto.ui.viewModel.DistoViewModel
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.BluetoothDisabled
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,15 +51,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.terra.terradisto.ui.components.StatusBadge
 import com.terra.terradisto.viewmodel.ProjectViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.flow.flowOf
 
 @Composable
 fun ProjectListScreen(
@@ -90,6 +82,21 @@ fun ProjectListScreen(
     LaunchedEffect(sortByCreated) {
         if (projects.isNotEmpty()) {
             listState.scrollToItem(0) // 부드러운 스크롤을 원하시면 animateScrollToItem(0) 사용 가능
+        }
+    }
+
+    // 프로젝트 선택 시 최상단으로 부드럽게 자동 스크롤
+//    LaunchedEffect(selectedProject) {
+//        if (projects.isNotEmpty() && selectedProject != null) {
+//            listState.animateScrollToItem(0)
+//        }
+//    }
+    LaunchedEffect(selectedProject) {
+        if (projects.isNotEmpty() && selectedProject != null) {
+            val isScrollingDown = listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
+            if (isScrollingDown) {
+                listState.animateScrollToItem(0)
+            }
         }
     }
 
@@ -179,9 +186,7 @@ fun ProjectListScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("새 현장 측정 시작", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
-
             }
-
         }
     ) { padding ->
         Column(
@@ -268,22 +273,54 @@ fun ProjectListScreen(
                 baseList.sortedByDescending { it.id == selectedProject?.id }
             }
 
-//            val sortedProjects = remember (projects, selectedProject){
-//                projects.sortedByDescending { it.id == selectedProject?.id }
-//            }
-
-            LazyColumn(
-                state = listState, // 리스트 위치 상태 값
-                contentPadding = PaddingValues(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(sortedProjects, key = { it.id }) { project ->
-                    ProjectItemCard(
-                        project = project,
-                        isSelected = project.id == selectedProject?.id,
-                        onSelect = { projectViewModel.selectProject(project) },
-                        onDelete = { projectToDelete = project }
-                    )
+            // 프로젝트 유무에 따른 화면 분기 처리
+            if (sortedProjects.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(bottom = 56.dp), // 하단 버튼 배치 공간과의 시각적 균형 분배
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "데이터 없음",
+                            modifier = Modifier.size(64.dp),
+                            tint = Color(0xFFC1C7CD)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "아직 측정된 데이터가 없어요!",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4E5968)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "지금 새로운 측정을 시작해 보세요.",
+                            fontSize = 14.sp,
+                            color = Color(0xFF8B95A1)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    state = listState, // 리스트 위치 상태 값
+                    contentPadding = PaddingValues(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(sortedProjects, key = { it.id }) { project ->
+                        ProjectItemCard(
+                            project = project,
+                            isSelected = project.id == selectedProject?.id,
+                            onSelect = { projectViewModel.selectProject(project) },
+                            onDelete = { projectToDelete = project }
+                        )
+                    }
                 }
             }
         }
@@ -335,7 +372,7 @@ fun SortSegmentControl(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "↑↓ 생성일자",
+                    text = "생성일자",
                     fontSize = 11.sp,
                     fontWeight = if (sortByCreated) FontWeight.Bold else FontWeight.Medium,
                     color = if (sortByCreated) Color(0xFF333D4B) else Color(0xFF6B7684)
@@ -371,20 +408,25 @@ fun ProjectItemCard(
     onSelect: () -> Unit, // 선택 함수 추가
     onDelete: () -> Unit // 삭제 함수 추가
 ) {
-    Surface (
+    Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.White,
         shape = RoundedCornerShape(22.dp),
         border = if (isSelected) BorderStroke(2.dp, Color(0xFF3182F6)) else null,
         shadowElevation = if (isSelected) 4.dp else 0.dp
-    ){
-        Row (
+    ) {
+        Row(
             modifier = Modifier.padding(20.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
-        ){
-            Column(modifier = Modifier.weight(1f)){
-                Text(project.projectName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF191F28))
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    project.projectName,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF191F28)
+                )
                 Spacer(Modifier.height(8.dp))
                 Text(project.location, fontSize = 14.sp, color = Color(0xFF8B95A1))
             }
@@ -395,7 +437,11 @@ fun ProjectItemCard(
                     modifier = Modifier.height(36.dp),
                     colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF4D4F))
                 ) {
-                    Icon(Icons.Rounded.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Rounded.DeleteOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(Modifier.width(4.dp))
                     Text("삭제", fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
@@ -413,41 +459,13 @@ fun ProjectItemCard(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(36.dp)
                 ) {
-                    Text(if (isSelected) "선택됨" else "선택", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (isSelected) "선택됨" else "선택",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-
-//            Column (horizontalAlignment = Alignment.End){
-//                // 측정 개수는 추후 포인트 테이블과 Join해서 가져와야 하므로 일단 고정값 혹은 날짜 표시
-//                Text(project.createdAt, fontSize = 12.sp, color = Color(0xFF3182F6))
-//                Spacer(Modifier.height(12.dp))
-//                Button(
-//                    onClick = onSelect,
-//                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-//
-//                    colors = ButtonDefaults.buttonColors(
-//                        containerColor = if (isSelected) Color(0xFFF2F4F6) else Color(0xFF3182F6),
-//                        contentColor = if (isSelected) Color(0xFF8B95A1) else Color.White
-//                    ),
-//                    shape = RoundedCornerShape(12.dp),
-//                    modifier = Modifier.height(36.dp)
-//                ) {
-//                    Text(if (isSelected) "선택됨" else "선택", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-//                }
-//            }
         }
     }
 }
-
-//@Preview(showBackground = true, backgroundColor = 0xFFF2F4F6)
-//@Composable
-//fun ProjectListScreenPreview() {
-//    MaterialTheme {
-//        ProjectListScreen(
-//            onNavigateToSurvey = {},
-//            onNavigateToCreate = {},
-//            onCreateClick = {},
-//            onConnectClick = {},
-//        )
-//    }
-//}
