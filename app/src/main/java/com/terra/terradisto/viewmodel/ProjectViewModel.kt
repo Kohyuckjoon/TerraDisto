@@ -29,17 +29,6 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
         _selectedProject.value = project
     }
 
-    // 프로젝트 삭제 함수
-//    fun deleteProject(project: Project) {
-//        viewModelScope.launch {
-//            repository.delete(project)
-//
-//            // 삭제하려는 프로젝트가 현재 선택된 프로젝트라면 선택 해제
-//            if (_selectedProject.value?.id == project.id) {
-//                _selectedProject.value = null
-//            }
-//        }
-//    }
     fun deleteProject(project: Project) {
         viewModelScope.launch {
             try {

@@ -65,12 +65,11 @@ android {
 }
 
 dependencies {
-
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation libs.firebase.crashlytics.buildtools
     implementation libs.protolite.well.known.types
-    ksp(libs.room.compiler) // 애노테이션 프로세서
+    ksp(libs.room.compiler)
 
     implementation libs.appcompat
     implementation libs.material
@@ -106,4 +105,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
 
     implementation("org.apache.poi:poi-ooxml:5.2.5") // 엑셀 파일 생성 및 셀 너비 제어를 위한 POI 라이브러리
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0") // retrofit
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0") // retrofit
 }

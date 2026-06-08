@@ -1,5 +1,7 @@
 package com.terra.terradisto
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -29,6 +31,8 @@ import com.terra.terradisto.ui.main.DistoMainScreen
 import com.terra.terradisto.ui.project.CreateProjectScreen
 import com.terra.terradisto.ui.navigationHostWrapper.NavigationHostWrapper
 import androidx.compose.animation.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.terra.terradisto.data.AppDatabase
@@ -38,6 +42,7 @@ import com.terra.terradisto.ui.ProjectListScreen
 import com.terra.terradisto.ui.SurveyDiameterScreen
 
 import com.terra.terradisto.ui.history.MeasureHistoryScreen
+import com.terra.terradisto.ui.login.LoginScreen
 import com.terra.terradisto.ui.main.QuickSurveyScreen
 import com.terra.terradisto.ui.screens.SurveyMeasurementScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
@@ -93,7 +98,8 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
              */
             MaterialTheme {
                 // 구조 수정 - 현재 화면 상태 관리
-                var currentScreen by remember { mutableStateOf("main") }
+//                var currentScreen by remember { mutableStateOf("main") }
+                var currentScreen by remember { mutableStateOf("login") }
 
                 // 프로젝트 생성 홤면 진입 전 "이전 화면" 기억하기 상태 변수
                 var previousScreen by remember { mutableStateOf("main") }
@@ -267,6 +273,23 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
 
                 AnimatedContent(targetState = currentScreen) { target ->
                     when (target) {
+                        "login" -> {
+                            // 여기에 로그인 화면 추가
+                            LoginScreen(
+                                onLoginSuccess = {
+                                    currentScreen = "main"
+                                },
+                                onContactAdmin = {
+                                    val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                        data = Uri.parse("mailto:admin@")
+                                    }
+                                    startActivity(intent)
+                                },
+//                                onSignUpClick = {
+//                                    // 회원가입 클릭 시 로직 (예: 웹뷰 이동 등)
+//                                }
+                            )
+                        }
                         "main" -> DistoMainScreen(
                             isDistoConnected = viewModel.isDistoConnected,
                             selectedProjectName = selectedProject?.projectName,
