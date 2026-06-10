@@ -1,16 +1,20 @@
 package com.terra.terradisto.ui.login
 
+import android.content.Context
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -39,10 +43,21 @@ fun LoginScreen(
     onContactAdmin: () -> Unit,
     viewModel: LoginViewModel = viewModel() // ViewModel 주입
 ) {
+    // 기기 로컬 저장소(SharedPreferences)
+    val context = LocalContext.current
+    val sharedPreferences = remember {
+        context.getSharedPreferences("terra_survey_prefs", Context.MODE_PRIVATE)
+    }
+
     var idInput by remember { mutableStateOf("") }
     var passwordInput by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    // 기존 기억된 자동 로그인 활성화 상태값을 판별하여 초기화하도록 변경
+    var isAutoLoginEnabled by remember {
+        mutableStateOf(sharedPreferences.getBoolean("is_auto_login", false))
+    }
 
     val uriHandler = LocalUriHandler.current
     val focusManager = LocalFocusManager.current
@@ -128,6 +143,49 @@ fun LoginScreen(
             singleLine = true
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .clickable(
+                    // 물결 이펙트 범위를 깔끔하게 제한하여 토스 특유의 반응성 제공
+                    indication = null,
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                ) {
+                    isAutoLoginEnabled = !isAutoLoginEnabled
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // 원형 체크박스 애니메이션 컨테이너
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(
+                        color = if (isAutoLoginEnabled) BrandBlue else Color(0xFFE5E8EB),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+
+            Text(
+                text = "자동 로그인",
+                fontSize = 15.sp,
+                fontWeight = if (isAutoLoginEnabled) FontWeight.Bold else FontWeight.Medium,
+                color = if (isAutoLoginEnabled) TextDark else Color(0xFF4E5968),
+                letterSpacing = (-0.3).sp
+            )
+        }
+
         if (errorMessage.isNotEmpty()) {
             Text(errorMessage, color = ErrorRed, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
         }
@@ -144,6 +202,13 @@ fun LoginScreen(
                 } else {
                     viewModel.login(idInput, passwordInput) { success ->
                         if (success) {
+                            sharedPreferences.edit().apply {
+                                putBoolean("is_auto_login", isAutoLoginEnabled)
+
+                                putString("saved_user_id", idInput)
+                                putString("saved_user_pw", passwordInput)
+                            }.apply()
+                            
                             onLoginSuccess() // 로그인 성공 시, 메인 화면으로 이동
                         } else {
                             errorMessage = viewModel.errorMessage ?: "로그인 실패"

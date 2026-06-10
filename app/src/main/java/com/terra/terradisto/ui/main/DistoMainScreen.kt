@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -51,12 +52,15 @@ import com.terra.terradisto.ui.components.StatusBadge
 fun DistoMainScreen(
     isDistoConnected: Boolean,
     selectedProjectName: String?,
+    hasServerLicense: Boolean = false,
+    userEmail: String = "user@example.com",
     onConnectClick: () -> Unit,
     onCreateProjectClick: () -> Unit,
     onQuickSurveyClick: () -> Unit,
     onSurveyClick: () -> Unit,
     onProjectListClick: () -> Unit,
-    onHistoryClick: () -> Unit
+    onHistoryClick: () -> Unit,
+    onMyPageClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState() // 스크롤 상태 정의
@@ -90,10 +94,23 @@ fun DistoMainScreen(
             // 상단 고정 영역 (스크롤 안 됨)
             Spacer(modifier = Modifier.height(20.dp))
 
-            HeaderSection(
-                selectedProjectName = selectedProjectName,
-                onProjectListClick = onProjectListClick
-            )
+            val licenseBadgeText = if (hasServerLicense) {
+                "✓ 라이선스 등록 완료됨"
+            } else {
+                "⚠️ 라이선스 등록이 필요해요"
+            }
+
+            Column (
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onMyPageClick() }
+            ){
+                HeaderSection(
+                    selectedProjectName = selectedProjectName,
+                    userEmail = licenseBadgeText,
+                    onProjectListClick = onProjectListClick
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 

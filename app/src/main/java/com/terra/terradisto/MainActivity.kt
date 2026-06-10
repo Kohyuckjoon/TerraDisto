@@ -1,8 +1,10 @@
 package com.terra.terradisto
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -46,7 +48,14 @@ import com.terra.terradisto.ui.login.LoginScreen
 import com.terra.terradisto.ui.main.QuickSurveyScreen
 import com.terra.terradisto.ui.screens.SurveyMeasurementScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.time.Duration.Companion.minutes
 
 interface DistoStatusListener {
     fun onStatusChanged(isConnected: Boolean)
@@ -99,7 +108,12 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
             MaterialTheme {
                 // 구조 수정 - 현재 화면 상태 관리
 //                var currentScreen by remember { mutableStateOf("main") }
-                var currentScreen by remember { mutableStateOf("login") }
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val sharedPreferences = remember { context.getSharedPreferences("terra_survey_prefs", Context.MODE_PRIVATE) }
+//                val sharedPreferences = remember { context.getSharedPreferences("terra_survey_prefs", android.content.Context.MODE_PRIVATE) }
+
+                val isAutoLogin = sharedPreferences.getBoolean("is_auto_login", false)
+                var currentScreen by remember { mutableStateOf(if (isAutoLogin) "main" else "login") }
 
                 // 프로젝트 생성 홤면 진입 전 "이전 화면" 기억하기 상태 변수
                 var previousScreen by remember { mutableStateOf("main") }
@@ -112,8 +126,16 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
 
                 // 프로젝트 미 선택 안내 팝업을 제어하기 위한 상태 변수 추가
                 var showProjectErrorDialog by remember { mutableStateOf(false) }
+                var showLicenseErrorDialog by remember { mutableStateOf(false) }
 
                 val quickDistanceState = remember { mutableStateOf("0.000") }
+
+                var savedEmail by remember {
+                    mutableStateOf(sharedPreferences.getString("saved_user_id", "") ?: "")
+                }
+
+                var hasServerLicense by remember { mutableStateOf(false) } // 실시간 라이선스 서버 상태값 유지를 위한 가변 상태 선언(기본값 false)
+
                 val mainYetiController = remember {
                     com.terra.terradisto.distosdkapp.device.YetiDeviceController(
                         applicationContext,
@@ -170,7 +192,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         val device = info?.device
                         val actualConnected = device?.connectionState == ch.leica.sdk.Devices.Device.ConnectionState.connected
 
-                        // 2. [중요] 실제 하드웨어 상태와 우리 앱의 ViewModel 상태를 강제로 일치시킴
+                        // 2. 실제 하드웨어 상태와 우리 앱의 ViewModel 상태를 강제로 일치
                         if (viewModel.isDistoConnected != actualConnected) {
                             onStatusChanged(actualConnected)
                         }
@@ -181,6 +203,27 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             mainYetiController.setListeners()
                         }
                         delay(2000) // 2초마다 상태 체크하여 즉각 반응 보장
+                    }
+                }
+
+                LaunchedEffect(currentScreen) {
+                    if (currentScreen == "main") {
+                        Log.d("License", "LaunchedEffect(currentScreen): 메인 화면 진입 -> 라이선스 체크 루프 시작 (주기: 30초)")
+                        while (true) {
+                            val pref = context.getSharedPreferences("terra_survey_prefs", android.content.Context.MODE_PRIVATE)
+                            val email = sharedPreferences.getString("saved_user_id", "") ?: ""
+                            val password = sharedPreferences.getString("saved_user_pw", "") ?: ""
+
+                            if (email.isNotEmpty() && password.isNotEmpty()) {
+                                val result = checkDistoLicenseOnServer(email, password)
+                                hasServerLicense = result
+                                Log.d("LicenseStatus", "서버 체크 결과 -> hasLicense: $result (계정: $email)")
+                            } else {
+                                Log.e("LicenseStatus", "ID/PW 정보가 없습니다. (재로그인 필요)")
+                                hasServerLicense = false
+                            }
+                            delay(3.minutes)
+                        }
                     }
                 }
 
@@ -293,6 +336,8 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         "main" -> DistoMainScreen(
                             isDistoConnected = viewModel.isDistoConnected,
                             selectedProjectName = selectedProject?.projectName,
+                            hasServerLicense = hasServerLicense,
+                            userEmail = savedEmail,
                             onConnectClick = { currentScreen = "connect" },
                             onCreateProjectClick = { previousScreen = "main"; currentScreen = "create_project" },
                             onQuickSurveyClick = { currentScreen = "quick_survey" },
@@ -341,8 +386,51 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
             }
         }
     }
-}
 
+    private suspend fun checkDistoLicenseOnServer(email: String, javaPass: String): Boolean = withContext(Dispatchers.IO) {
+        Log.d("LicenseCheck", "서버로 요청 전송 중... ($email)")
+
+        try {
+            val url = URL("https://terra-survey.com/api/apps/disto/license/status")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json; utf-8")
+            conn.doOutput = true
+            conn.connectTimeout = 5000 // 타임아웃 추가
+            conn.readTimeout = 5000
+
+            val jsonParam = JSONObject().apply {
+                put("email", email)
+                put("password", javaPass)
+            }
+
+            OutputStreamWriter(conn.outputStream).use { os ->
+                os.write(jsonParam.toString())
+                os.flush()
+            }
+
+            val responseCode = conn.responseCode
+            Log.d("LicenseCheck", "HTTP 응답 코드: $responseCode")
+
+            if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                Log.d("LicenseCheck", "서버 응답 원본: $response")
+
+                val jsonResponse = JSONObject(response)
+                return@withContext jsonResponse.optBoolean("hasLicense", false)
+            } else {
+                Log.e("LicenseCheck", "서버 연결 실패 - 응답 코드: $responseCode")
+                return@withContext false
+            }
+        } catch (e: Exception) {
+            Log.e("LicenseCheck", "네트워크 예외 발생: ${e.message}")
+            e.printStackTrace()
+            false
+        } finally {
+            Log.d("LicenseCheck", "--- 라이선스 체크 종료 ---")
+        }
+    }
+}
 
 // 상태값 변경
 //    override fun onStatusChanged(isConnected: Boolean) {
@@ -352,7 +440,6 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
 //        }
 //    }
 //}
-
 
 @Composable
 fun onCreateProjectClick(onClick: () -> Unit) {
@@ -376,8 +463,15 @@ fun onCreateProjectClick(onClick: () -> Unit) {
 fun HeaderSection(
     // 현재 선택된 프로젝트 이름을 받아와서 띄워주도록 매개변수 구조 수정 및 onClick 핸들러 연결 가능케 변경
     selectedProjectName: String?,
+    userEmail: String,
     onProjectListClick: () -> Unit
 ) {
+    val isLicensed = userEmail.contains("라이선스 등록 완료")
+
+    val badgeBgColor = if (isLicensed) Color(0xFFEFF6FF) else Color(0xFFFFF1F0)
+    val badgeTextColor = if (isLicensed) Color(0xFF1D4ED8) else Color(0xFFDC2626)
+    val dotColor = if (isLicensed) Color(0xFF3B82F6) else Color(0xFFEF4444)
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -391,12 +485,41 @@ fun HeaderSection(
                 color = Color(0xFF191F28),
                 letterSpacing = (-0.5).sp
             )
+            Spacer(modifier = Modifier.height(5.dp))
             Text(
                 "스마트 맨홀 측량 시스템",
                 fontSize = 15.sp,
                 color = Color(0xFF4E5968),
                 fontWeight = FontWeight.Medium
             )
+
+            Spacer(modifier = Modifier.height(7.dp))
+
+            Surface(
+                shape = RoundedCornerShape(100.dp),
+                color = badgeBgColor,
+                modifier = Modifier.wrapContentSize()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 15.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp) // 아이콘과 텍스트 간격
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(color = dotColor, shape = CircleShape)
+                    )
+
+                    Text(
+                        text = userEmail,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeTextColor,
+                        letterSpacing = (-0.3).sp
+                    )
+                }
+            }
         }
 
         // 프로젝트 선택 상태
@@ -407,7 +530,8 @@ fun HeaderSection(
                 .clickable { onProjectListClick() } //우상단 프로젝트 영역 클릭하면 프로젝트 리스트 화면으로 이동되게 변경
                 .fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
-            color = if (selectedProjectName != null) Color(0xFFE8F3FF) else Color.White,
+            color = if (selectedProjectName != null) Color(0xFFE8F3FF) else Color(0xFFF2F4F6),
+//            color = if (selectedProjectName != null) Color(0xFFE8F3FF) else Color.White,
             border = BorderStroke(
                 width = 1.dp,
                 color = if (selectedProjectName != null) Color(0xFF3182F6) else Color(0xFFE5E8EB)
