@@ -45,6 +45,7 @@ import com.terra.terradisto.ui.SurveyDiameterScreen
 
 import com.terra.terradisto.ui.history.MeasureHistoryScreen
 import com.terra.terradisto.ui.login.LoginScreen
+import com.terra.terradisto.ui.main.MyPageScreen
 import com.terra.terradisto.ui.main.QuickSurveyScreen
 import com.terra.terradisto.ui.screens.SurveyMeasurementScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
@@ -349,7 +350,8 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             onHistoryClick = {
                                 if (selectedProject == null) showProjectErrorDialog = true
                                 else currentScreen = "history"
-                            }
+                            },
+                            onMyPageClick = { currentScreen = "mypage" }
                         )
                         "quick_survey" -> QuickSurveyScreen(
                             isDistoConnected = viewModel.isDistoConnected,
@@ -381,6 +383,15 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             val items by database.measurementDao().getMesurementByProject(selectedProject?.id ?: -1L).collectAsState(initial = emptyList<MeasurementEntity>())
                             MeasureHistoryScreen(items = items, onBackClick = { currentScreen = "main" })
                         }
+
+                        "mypage" -> MyPageScreen(
+                            currentLicenseKey = "06A9-B7AB-D490", // 필요시 실제 데이터 전달
+                            hasServerLicense = hasServerLicense,  // 💡 여기에 실시간 상태 변수를 주입합니다!
+                            onBackClick = { currentScreen = "main" },
+                            onLicenseSaveClick = { newKey ->
+                                // 라이선스 키 저장 로직이 필요하다면 여기에 ViewModel 연동 등을 처리합니다.
+                            }
+                        )
                     }
                 }
             }
@@ -464,7 +475,8 @@ fun HeaderSection(
     // 현재 선택된 프로젝트 이름을 받아와서 띄워주도록 매개변수 구조 수정 및 onClick 핸들러 연결 가능케 변경
     selectedProjectName: String?,
     userEmail: String,
-    onProjectListClick: () -> Unit
+    onProjectListClick: () -> Unit,
+    onBadgeClick: () -> Unit = {}
 ) {
     val isLicensed = userEmail.contains("라이선스 등록 완료")
 
@@ -498,7 +510,10 @@ fun HeaderSection(
             Surface(
                 shape = RoundedCornerShape(100.dp),
                 color = badgeBgColor,
-                modifier = Modifier.wrapContentSize()
+                modifier = Modifier
+                    .wrapContentSize()
+                    .clip(RoundedCornerShape(100.dp))
+                    .clickable { onBadgeClick() }
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 15.dp, vertical = 8.dp),
