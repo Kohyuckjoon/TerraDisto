@@ -36,8 +36,10 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyPageScreen(
-    currentLicenseKey: String = "06A9-B7AB-D490",
+    userEmail: String = "",
+    currentLicenseKey: String = "",
     hasServerLicense: Boolean = false, // 서버 라이선스 상태 추가
+    refreshTrigger: Int = 0,
     onLicenseSaveClick: (String) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
@@ -45,13 +47,29 @@ fun MyPageScreen(
     val scrollState = rememberScrollState()
 
     // 회원정보 상태 (조회전용)
-    val userId by remember { mutableStateOf("admin") }
+    val userId by remember(userEmail) { mutableStateOf(userEmail) }
+//    val userId by remember { mutableStateOf("admin") }
     val userPassword by remember { mutableStateOf("••••••••••••") }
     var passwordVisible by remember { mutableStateOf(false) }
 
     // 라이선스 섹션 상태 관리
     var isEditMode by remember { mutableStateOf(false) }
-    var licenseInput by remember { mutableStateOf(currentLicenseKey) }
+
+    // 외부에서 키가 바뀜(성공) / 리프레시 트리거가 작동(실패) 하면 원래 코드로 재 설정
+    var licenseInput by remember(currentLicenseKey, refreshTrigger) {
+        mutableStateOf(currentLicenseKey)
+    }
+
+    // 서버 검증 실패 + 취소 햇을때 원복 기준점
+    var lastValidKey by remember(currentLicenseKey, refreshTrigger) {
+        mutableStateOf(currentLicenseKey)
+    }
+
+    // 외부에서 라이선스가 갱신되어 키가 변경되면 입력 필드 + 기준점 동기화
+//    LaunchedEffect(currentLicenseKey, refreshTrigger) {
+//        licenseInput = currentLicenseKey
+//        lastValidKey = currentLicenseKey
+//    }
 
     Scaffold(
         topBar = {
@@ -282,7 +300,7 @@ fun MyPageScreen(
                             OutlinedButton(
                                 onClick = {
                                     isEditMode = false
-                                    licenseInput = currentLicenseKey // 기존 키로 복원
+                                    licenseInput = lastValidKey
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),

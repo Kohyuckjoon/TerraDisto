@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -38,7 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.terra.terradisto.data.AppDatabase
+import com.terra.terradisto.data.LicenseRegisterRequest
 import com.terra.terradisto.data.MeasurementEntity
+import com.terra.terradisto.data.RetrofitClient
 
 import com.terra.terradisto.ui.ProjectListScreen
 import com.terra.terradisto.ui.SurveyDiameterScreen
@@ -50,7 +53,9 @@ import com.terra.terradisto.ui.main.QuickSurveyScreen
 import com.terra.terradisto.ui.screens.SurveyMeasurementScreen
 import com.terra.terradisto.viewmodel.ProjectViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.OutputStreamWriter
@@ -128,6 +133,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                 // 프로젝트 미 선택 안내 팝업을 제어하기 위한 상태 변수 추가
                 var showProjectErrorDialog by remember { mutableStateOf(false) }
                 var showLicenseErrorDialog by remember { mutableStateOf(false) }
+                var showLicenseSuccessDialog by remember { mutableStateOf(false) }
 
                 val quickDistanceState = remember { mutableStateOf("0.000") }
 
@@ -136,6 +142,8 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                 }
 
                 var hasServerLicense by remember { mutableStateOf(false) } // 실시간 라이선스 서버 상태값 유지를 위한 가변 상태 선언(기본값 false)
+
+                val coroutineScope = rememberCoroutineScope()
 
                 val mainYetiController = remember {
                     com.terra.terradisto.distosdkapp.device.YetiDeviceController(
@@ -315,6 +323,69 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                     )
                 }
 
+                if (showLicenseSuccessDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showLicenseSuccessDialog = false },
+                        shape = RoundedCornerShape(24.dp),
+                        containerColor = Color.White,
+                        title = {
+                            Text(
+                                text = "라이선스 등록 완료", // 🔴 문구 수정
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF191F28)
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = "DISTO 라이선스가 성공적으로 등록되었습니다.\n이제 모든 정밀 측량 기능을 사용할 수 있어요.", // 🔴 문구 수정
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF4E5968),
+                                lineHeight = 22.sp
+                            )
+                        },
+                        confirmButton = {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        showLicenseSuccessDialog = false
+                                        currentScreen = "main"
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                                ) {
+                                    Text("메인 화면으로 가기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                // 2. 닫기 버튼 (현재 화면 유지)
+                                TextButton(
+                                    onClick = { showLicenseSuccessDialog = false },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Text(
+                                        "닫기",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF8B95A1)
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+
                 AnimatedContent(targetState = currentScreen) { target ->
                     when (target) {
                         "login" -> {
@@ -384,14 +455,49 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             MeasureHistoryScreen(items = items, onBackClick = { currentScreen = "main" })
                         }
 
-                        "mypage" -> MyPageScreen(
-                            currentLicenseKey = "06A9-B7AB-D490", // 필요시 실제 데이터 전달
-                            hasServerLicense = hasServerLicense,  // 💡 여기에 실시간 상태 변수를 주입합니다!
-                            onBackClick = { currentScreen = "main" },
-                            onLicenseSaveClick = { newKey ->
-                                // 라이선스 키 저장 로직이 필요하다면 여기에 ViewModel 연동 등을 처리합니다.
+                        "mypage" -> {
+                            val email = sharedPreferences.getString("saved_user_id", "") ?: ""
+                            val password = sharedPreferences.getString("saved_user_pw", "") ?: ""
+//                            val currentSavedKey = sharedPreferences.getString("saved_license_key", "06A9-B7AB-D490") ?: "06A9-B7AB-D490"
+
+                            var currentSavedKey by remember {
+                                mutableStateOf(sharedPreferences.getString("saved_license_key", "") ?: "")
                             }
-                        )
+
+                            var licenseRefreshTrigger by remember { mutableStateOf(0) }
+
+                            MyPageScreen(
+                                userEmail = email,
+                                currentLicenseKey = currentSavedKey,
+                                hasServerLicense = hasServerLicense,
+                                refreshTrigger = licenseRefreshTrigger,
+                                onBackClick = { currentScreen = "main" },
+                                onLicenseSaveClick = { insertedKey ->
+                                    coroutineScope.launch {
+                                        if (email.isNotEmpty() && password.isNotEmpty()) {
+                                            val isSuccess = registerDistoLicense(email, password, insertedKey)
+                                            if (isSuccess) {
+                                                hasServerLicense = insertedKey.isNotEmpty() // 빈값이면 라이선스 없음 처리
+                                                sharedPreferences.edit().putString("saved_license_key", insertedKey).apply()
+                                                currentSavedKey = insertedKey
+                                                showLicenseSuccessDialog = true // 성공 팝업 띄우기
+                                            } else {
+                                                // 실패 시: 트리거 작동 -> MyPageScreen의 입력 필드 원복
+                                                licenseRefreshTrigger++
+
+                                                Toast.makeText(
+                                                    applicationContext,
+                                                    "유효하지 않은 라이선스입니다. 기존 키를 유지합니다.",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        } else {
+                                            Toast.makeText(applicationContext, "인증 정보가 없습니다. 다시 로그인해 주세요.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -439,6 +545,32 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
             false
         } finally {
             Log.d("LicenseCheck", "--- 라이선스 체크 종료 ---")
+        }
+    }
+
+    private suspend fun registerDistoLicense(email: String, javaPass: String, licenseKey: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val request = LicenseRegisterRequest(
+                email = email,
+                password = javaPass,
+                licenseKey = licenseKey
+            )
+
+            // 프로젝트 내 Retrofit 클라이언트 인스턴스 사용 (예시명: RetrofitClient.apiService)
+            val response = RetrofitClient.apiService.registerLicense(request)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                Log.d("LicenseRegister", "등록 성공: ${body?.message}")
+                // 성공 응답이 오고, success와 hasLicense가 모두 true일 때만 true 반환
+                return@withContext body?.success == true && body.hasLicense
+            } else {
+                Log.e("LicenseRegister", "서버 에러 코드: ${response.code()}")
+                return@withContext false
+            }
+        } catch (e: Exception) {
+            Log.e("LicenseRegister", "네트워크 통신 실패: ${e.message}")
+            return@withContext false
         }
     }
 }
