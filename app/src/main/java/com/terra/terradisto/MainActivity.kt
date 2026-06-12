@@ -141,10 +141,20 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                     com.terra.terradisto.distosdkapp.device.YetiDeviceController(
                         applicationContext,
                         object : com.terra.terradisto.distosdkapp.device.YetiDeviceController.YetiDataListener {
-                            override fun onBasicMeasurements_Received(basicData: com.terra.terradisto.distosdkapp.device.YetiDeviceController.BasicData?) {
+
+                            override fun onBasicMeasurements_Received(
+                                basicData: com.terra.terradisto.distosdkapp.device.YetiDeviceController.BasicData?
+                            ) {
                                 basicData?.let { data ->
-                                    // 측정된 물리 거리를 상태값에 갱신하여 UI로 전달
-                                    quickDistanceState.value = data.distance ?: "0.000"
+                                    val distance = data.distance?.trim()
+                                        ?.takeIf { it.isNotEmpty() }
+                                        ?: "0.000"
+
+                                    Log.d("DISTO_MEASURE", "onBasicMeasurements_Received distance = $distance")
+
+                                    runOnUiThread {
+                                        quickDistanceState.value = distance
+                                    }
                                 }
                             }
                             // 나머지 필수 리스너 오버라이드는 공백 유지
@@ -152,7 +162,23 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                             override fun onQuaternionMeasurement_Received(d: com.terra.terradisto.distosdkapp.device.YetiDeviceController.QuaternionData?) {}
                             override fun onAccRotationMeasurement_Received(d: com.terra.terradisto.distosdkapp.device.YetiDeviceController.AccRotData?) {}
                             override fun onMagnetometerMeasurement_Received(d: com.terra.terradisto.distosdkapp.device.YetiDeviceController.MagnetometerData?) {}
-                            override fun onDistocomTransmit_Received(d: String?) {}
+                            override fun onDistocomTransmit_Received(d: String?) {
+                                val raw = d?.trim().orEmpty()
+
+                                Log.d("DISTO_MEASURE", "onDistocomTransmit_Received raw = $raw")
+
+                                if (raw.isEmpty()) return
+
+                                // raw 값에 "1.234 m" 처럼 단위/문자가 섞여도 숫자만 추출
+                                val distance = Regex("""[-+]?\d+(\.\d+)?""")
+                                    .find(raw)
+                                    ?.value
+                                    ?: raw
+
+                                runOnUiThread {
+                                    quickDistanceState.value = distance
+                                }
+                            }
                             override fun onDistocomEvent_Received(d: String?) {}
                             override fun onBrand_Received(d: String?) {}
                             override fun onAPPSoftwareVersion_Received(d: String?) {}
