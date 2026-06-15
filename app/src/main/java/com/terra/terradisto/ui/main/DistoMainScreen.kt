@@ -72,6 +72,9 @@ fun DistoMainScreen(
     var showDistoConnectDialog by remember { mutableStateOf(false) }
     var showProjectSelectDialog by remember { mutableStateOf(false) }
 
+    // 라이선스 필요 안내에 대한 팝업 상태 변수 추가
+    var showLicenseWarningDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         containerColor = Color(0xFFF2F4F6),
         bottomBar = {
@@ -96,7 +99,7 @@ fun DistoMainScreen(
                 .padding(horizontal = 24.dp)
         ) {
             // 상단 고정 영역 (스크롤 안 됨)
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             val licenseBadgeText = if (hasServerLicense) {
                 "✓ 라이선스 등록 완료됨"
@@ -142,6 +145,12 @@ fun DistoMainScreen(
                 verticalArrangement = Arrangement.spacedBy(17.dp)
             ) {
                 item {
+                    val quickSurveyColor = when {
+                        !hasServerLicense -> Color(0xFFE5E8EB) // 라이선스 없을 때 완전히 솔리드한 비활성화 그레이
+                        isDistoConnected -> Color(0xFF00B67A)  // 활성화 상태
+                        else -> Color(0xFFADB5BD)              // 연결 안 됨 상태
+                    }
+
                     MainActionButton(
                         title = "간편 측정",
                         subtitle = "항목 없이 바로 거리만 측정",
@@ -150,16 +159,29 @@ fun DistoMainScreen(
                         modifier = Modifier.height(170.dp),
                         onClick = {
                             /* 블루투스 연결된 상태면 간편 측정 화면, 미 연결 상태면 Disto 화면으로 이동 */
-                            if (!isDistoConnected) {
-                                showDistoConnectDialog = true // 기기 연결 팝업
+//                            if (!isDistoConnected) {
+//                                showDistoConnectDialog = true // 기기 연결 팝업
+//                            } else {
+//                                onQuickSurveyClick() // 간편 측정 화면으로 연결
+//                            }
+                            if (!hasServerLicense) {
+                                showLicenseWarningDialog = true
+                            } else if (!isDistoConnected) {
+                                showDistoConnectDialog = true
                             } else {
-                                onQuickSurveyClick() // 간편 측정 화면으로 연결
+                                onQuickSurveyClick()
                             }
                         }
                     )
                 }
 
                 item {
+                    val surveyColor = when {
+                        !hasServerLicense -> Color(0xFFE5E8EB)
+                        isDistoConnected && selectedProjectName != null -> Color(0xFF3182F6)
+                        else -> Color(0xFFADB5BD)
+                    }
+
                     MainActionButton(
                         title = "정밀 측정",
                         subtitle = "모든 항목 상세 기록하기",
@@ -168,10 +190,13 @@ fun DistoMainScreen(
                         modifier = Modifier.height(170.dp), //  간편 측정과 대칭을 이루도록 고정 높이 적용
 
                         onClick = {
-                            if (!isDistoConnected) {
-                                showDistoConnectDialog = true // 기기 연결 팝업
+                            // [RED] 클릭 시 라이선스 미활성화 판별 분기 최상단에 배치
+                            if (!hasServerLicense) {
+                                showLicenseWarningDialog = true
+                            } else if (!isDistoConnected) {
+                                showDistoConnectDialog = true
                             } else if (selectedProjectName == null) {
-                                showProjectSelectDialog = true // 프로젝트 선택 팝업
+                                showProjectSelectDialog = true
                             } else {
                                 onSurveyClick()
                             }
@@ -201,6 +226,68 @@ fun DistoMainScreen(
 //                onCreateClick = onCreateProjectClick,
 //                onProjectListClick = onProjectListClick // 리스트 화면 이동 연결
 //            )
+
+            if (showLicenseWarningDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLicenseWarningDialog = false },
+                    shape = RoundedCornerShape(24.dp),
+                    containerColor = Color.White,
+                    title = {
+                        Text(
+                            text = "라이선스 인증이 필요해요",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF191F28)
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "측정 기능을 사용하시려면\n먼저 기기 또는 계정 라이선스를 등록해 주세요.",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF4E5968),
+                            lineHeight = 22.sp
+                        )
+                    },
+                    confirmButton = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    showLicenseWarningDialog = false
+                                    onMyPageClick() // 라이선스 등록을 유도하기 위해 마이페이지 콜백 연동
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3182F6))
+                            ) {
+                                Text("라이선스 등록하러 가기", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            TextButton(
+                                onClick = { showLicenseWarningDialog = false },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(
+                                    "닫기",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8B95A1)
+                                )
+                            }
+                        }
+                    }
+                )
+            }
 
             if (showDistoConnectDialog) {
                 AlertDialog(
