@@ -15,11 +15,13 @@ import ch.leica.sdk.ErrorHandling.ErrorObject;
 import ch.leica.sdk.ErrorHandling.IllegalArgumentCheckedException;
 import ch.leica.sdk.ErrorHandling.WrongDataException;
 import ch.leica.sdk.Types;
+import ch.leica.sdk.commands.MeasuredValue;
 import ch.leica.sdk.commands.MeasuredValueYeti;
 import ch.leica.sdk.commands.MeasurementConverter;
 import ch.leica.sdk.commands.ReceivedData;
 import ch.leica.sdk.commands.ReceivedYetiDataPacket;
 import ch.leica.sdk.commands.response.Response;
+import ch.leica.sdk.commands.response.ResponseBLEMeasurements;
 import ch.leica.sdk.commands.response.ResponsePlain;
 
 public class YetiDeviceController
@@ -27,6 +29,8 @@ public class YetiDeviceController
         implements UpdateController.UpdateProcessListener {
 
     private String appSoftwareVersion;
+    private Types.Commands cachedDistanceCommand = null;
+    private String cachedDistanceDeviceId = null;
 
     // DATA MODELS
     public class BasicData { public String distance=""; public String distanceUnit=""; public String inclination=""; public String inclinationUnit=""; public String direction=""; public String directionUnit=""; public String timestamp=""; }
@@ -167,28 +171,306 @@ public class YetiDeviceController
         return response;
     }
 
-    public ErrorObject sendDistanceCommand() {
+//    public ErrorObject sendDistanceCommand() {
+//        final String METHODTAG = ".sendDistanceCommand";
+//        errorSendingCommand = null;
+//
+//        if (currentDevice == null) {
+//            errorSendingCommand =
+//                    ErrorController.createErrorObject(NULL_DEVICE_CODE, NULL_DEVICE_MESSAGE);
+//            Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+//            return errorSendingCommand;
+//        }
+//
+//        try {
+//            Response response = currentDevice.sendCommand(Types.Commands.Distance);
+//            response.waitForData();
+//
+//            errorSendingCommand = response.getError();
+//            if (errorSendingCommand != null) {
+//                Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+//                return errorSendingCommand;
+//            }
+//
+//            Log.d(CLASSTAG, METHODTAG + " response class = " + response.getClass().getName());
+//
+//            // 기존 Yeti 방식: ResponsePlain으로 오는 경우
+//            if (response instanceof ResponsePlain) {
+//                ResponsePlain plainResponse = (ResponsePlain) response;
+//
+//                String data = plainResponse.getReceivedDataString();
+//                if (data != null) {
+//                    data = data.trim();
+//                }
+//
+//                yetiDataListener.onDistocomTransmit_Received(data);
+//                return null;
+//            }
+//
+//            // Leica BLE 방식: ResponseBLEMeasurements로 오는 경우
+//            if (response instanceof ResponseBLEMeasurements) {
+//                ResponseBLEMeasurements bleResponse = (ResponseBLEMeasurements) response;
+//
+//                MeasuredValue distanceValue = bleResponse.getDistanceValue();
+//
+//                if (distanceValue != null) {
+//                    String distance =
+//                            distanceValue.getConvertedValueStrNoUnit() + " " + distanceValue.getUnitStr();
+//
+//                    yetiDataListener.onDistocomTransmit_Received(distance);
+//                } else {
+//                    errorSendingCommand =
+//                            ErrorController.createErrorObject(
+//                                    COMMAND_ERROR_CODE,
+//                                    "Distance value is null"
+//                            );
+//                    Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+//                }
+//
+//                return errorSendingCommand;
+//            }
+//
+//            // 예상 못한 Response 타입
+//            errorSendingCommand =
+//                    ErrorController.createErrorObject(
+//                            COMMAND_ERROR_CODE,
+//                            "Unsupported response type: " + response.getClass().getName()
+//                    );
+//            Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+//
+//        } catch (DeviceException e) {
+//            errorSendingCommand =
+//                    ErrorController.createErrorObject(
+//                            COMMAND_ERROR_CODE,
+//                            "Error sending the distance command: " + e.getMessage()
+//                    );
+//            Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+//
+//        } catch (ClassCastException e) {
+//            errorSendingCommand =
+//                    ErrorController.createErrorObject(
+//                            COMMAND_ERROR_CODE,
+//                            "Wrong response type: " + e.getMessage()
+//                    );
+//            Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+//
+//        } catch (Exception e) {
+//            errorSendingCommand =
+//                    ErrorController.createErrorObject(
+//                            COMMAND_ERROR_CODE,
+//                            "Distance command error: " + e.getMessage()
+//                    );
+//            Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+//        }
+//
+//        return errorSendingCommand;
+//    }
+
+    @Override
+    public synchronized void setCurrentDevice(Device device) {
+        String newDeviceId = null;
+
+        if (device != null) {
+            newDeviceId = device.getDeviceID();
+        }
+
+        boolean deviceChanged = false;
+
+        if (cachedDistanceDeviceId == null && newDeviceId != null) {
+            deviceChanged = true;
+        } else if (cachedDistanceDeviceId != null && newDeviceId == null) {
+            deviceChanged = true;
+        } else if (cachedDistanceDeviceId != null && !cachedDistanceDeviceId.equals(newDeviceId)) {
+            deviceChanged = true;
+        }
+
+        super.setCurrentDevice(device);
+
+        if (deviceChanged) {
+            cachedDistanceCommand = null;
+            cachedDistanceDeviceId = newDeviceId;
+
+            Log.d(
+                    CLASSTAG,
+                    "setCurrentDevice: device changed. reset cachedDistanceCommand. deviceId = "
+                            + newDeviceId
+            );
+        }
+    }
+
+    public synchronized void resetDistanceCommandCache() {
+        cachedDistanceCommand = null;
+        cachedDistanceDeviceId = null;
+        Log.d(CLASSTAG, "resetDistanceCommandCache: cachedDistanceCommand cleared");
+    }
+
+    public synchronized ErrorObject sendDistanceCommand() {
         final String METHODTAG = ".sendDistanceCommand";
         errorSendingCommand = null;
 
         if (currentDevice == null) {
-            errorSendingCommand = ErrorController.createErrorObject(NULL_DEVICE_CODE, NULL_DEVICE_MESSAGE);
+            errorSendingCommand =
+                    ErrorController.createErrorObject(NULL_DEVICE_CODE, NULL_DEVICE_MESSAGE);
             Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
             return errorSendingCommand;
         }
 
-        try {
-            final ResponsePlain response =
-                    (ResponsePlain) currentDevice.sendCommand(Types.Commands.DistanceDC);
-            response.waitForData();
-            yetiDataListener.onDistocomTransmit_Received(response.getReceivedDataString());
-        } catch (DeviceException e) {
-            errorSendingCommand = ErrorController.createErrorObject(COMMAND_ERROR_CODE, "Error sending the distance command");
-            Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+        // 이미 성공한 명령어가 있으면 그 명령어만 바로 사용
+        if (cachedDistanceCommand != null) {
+            Log.d(CLASSTAG, METHODTAG + " use cached command = " + cachedDistanceCommand);
+
+            ErrorObject error = tryDistanceCommand(cachedDistanceCommand, true);
+
+            // 캐시된 명령어가 성공하면 바로 끝
+            if (error == null) {
+                return null;
+            }
+
+            // 캐시된 명령어가 실패하면 캐시 초기화
+            // 연결 장비가 바뀌었거나 SDK 상태가 꼬였을 가능성 대비
+            Log.w(CLASSTAG, METHODTAG + " cached command failed. reset cache.");
+            cachedDistanceCommand = null;
         }
+
+        // 최초 1회 또는 캐시 실패 시에만 둘 다 시도
+        Types.Commands[] commands = new Types.Commands[] {
+                Types.Commands.Distance,
+                Types.Commands.DistanceDC
+        };
+
+        ErrorObject lastError = null;
+
+        for (Types.Commands command : commands) {
+            ErrorObject error = tryDistanceCommand(command, false);
+
+            if (error == null) {
+                cachedDistanceCommand = command;
+
+                Log.d(
+                        CLASSTAG,
+                        METHODTAG + " cache success command = " + cachedDistanceCommand
+                );
+
+                return null;
+            }
+
+            lastError = error;
+        }
+
+        if (lastError != null) {
+            errorSendingCommand = lastError;
+        } else {
+            errorSendingCommand =
+                    ErrorController.createErrorObject(
+                            COMMAND_ERROR_CODE,
+                            "Both Distance and DistanceDC failed"
+                    );
+        }
+
+        Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
         return errorSendingCommand;
     }
 
+    private ErrorObject tryDistanceCommand(Types.Commands command, boolean fromCache) {
+        final String METHODTAG = ".tryDistanceCommand";
+
+        try {
+            Log.d(
+                    CLASSTAG,
+                    METHODTAG + " command = " + command + ", fromCache = " + fromCache
+            );
+
+            Response response = currentDevice.sendCommand(command);
+            response.waitForData();
+
+            if (response.getError() != null) {
+                Logs.logErrorObject(CLASSTAG, METHODTAG, response.getError());
+                return response.getError();
+            }
+
+            String result = extractDistanceResult(response);
+
+            if (result == null || result.trim().isEmpty()) {
+                return ErrorController.createErrorObject(
+                        COMMAND_ERROR_CODE,
+                        "Empty distance result from " + command
+                );
+            }
+
+            result = result.trim();
+
+            Log.d(
+                    CLASSTAG,
+                    METHODTAG + " success command = " + command
+                            + ", result = " + result
+                            + ", response = " + response.getClass().getName()
+            );
+
+            yetiDataListener.onDistocomTransmit_Received(result);
+            return null;
+
+        } catch (DeviceException e) {
+            return ErrorController.createErrorObject(
+                    COMMAND_ERROR_CODE,
+                    "DeviceException on " + command + ": " + e.getMessage()
+            );
+
+        } catch (Exception e) {
+            return ErrorController.createErrorObject(
+                    COMMAND_ERROR_CODE,
+                    "Exception on " + command + ": " + e.getMessage()
+            );
+        }
+    }
+
+    private String extractDistanceResult(Response response) {
+        final String METHODTAG = ".extractDistanceResult";
+
+        if (response == null) {
+            return null;
+        }
+
+        Log.d(CLASSTAG, METHODTAG + " response class = " + response.getClass().getName());
+
+        // DistanceDC 쪽에서 자주 오는 형태
+        if (response instanceof ResponsePlain) {
+            ResponsePlain plainResponse = (ResponsePlain) response;
+
+            String data = plainResponse.getReceivedDataString();
+            if (data != null) {
+                return data.trim();
+            }
+
+            return null;
+        }
+
+        // BLE Distance 쪽에서 자주 오는 형태
+        if (response instanceof ResponseBLEMeasurements) {
+            ResponseBLEMeasurements bleResponse = (ResponseBLEMeasurements) response;
+
+            MeasuredValue distanceValue = bleResponse.getDistanceValue();
+
+            if (distanceValue == null) {
+                return null;
+            }
+
+            String value = distanceValue.getConvertedValueStrNoUnit();
+            String unit = distanceValue.getUnitStr();
+
+            if (value == null || value.trim().isEmpty()) {
+                return null;
+            }
+
+            if (unit == null || unit.trim().isEmpty()) {
+                return value.trim();
+            }
+
+            return value.trim() + " " + unit.trim();
+        }
+
+        Log.w(CLASSTAG, METHODTAG + " unsupported response type = " + response.getClass().getName());
+        return null;
+    }
     // DEVICE INFO
     @Override
     public ErrorObject getDeviceInfo() {
