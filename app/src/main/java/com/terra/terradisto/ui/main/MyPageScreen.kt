@@ -16,7 +16,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -325,6 +327,66 @@ fun MyPageScreen(
                         }
                     }
                 }
+            }
+
+            Card (
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ){
+                Column (
+                    modifier = Modifier.padding(4.dp)
+                ){
+                    Row (
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://terra-survey.com/"))
+                                context.startActivity(intent)
+                            }
+                            .padding(horizontal = 16.dp, vertical = 16.dp), // 내부 터치 영역 및 정렬 패딩 통일
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ){
+                        Row (verticalAlignment = Alignment.CenterVertically){
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = Color(0xFF4E5968),
+                                modifier = Modifier.size(18.dp)
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = "개인정보 처리방침",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF333D4B)
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowRight,
+                            contentDescription = "이동하기",
+                            tint = Color(0xFFB0B8C1),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            Box (
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ){
+                Text(
+                    text = "Terra Pipe v1.0.0",
+                    fontSize = 12.sp,
+                    color = Color(0xFFB0B8C1)
+                )
             }
         }
     }

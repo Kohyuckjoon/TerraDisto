@@ -196,7 +196,7 @@ fun ProjectListScreen(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    "Disto Survey",
+                    "Terra PIPE",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF191F28)

@@ -623,7 +623,7 @@ fun HeaderSection(
     ) {
         Column {
             Text(
-                "Disto Survey",
+                "Terra PIPE",
                 fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF191F28),

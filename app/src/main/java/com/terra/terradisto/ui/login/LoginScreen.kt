@@ -94,7 +94,7 @@ fun LoginScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Disto Survey", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = TextDark)
+        Text("Terra PIPE", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Text("스마트 맨홀 측량 시스템에 오신 것을 환영합니다", fontSize = 14.sp, color = TextGray)
 
         Spacer(modifier = Modifier.height(48.dp))
