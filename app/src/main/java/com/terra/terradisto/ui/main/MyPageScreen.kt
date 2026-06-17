@@ -341,7 +341,7 @@ fun MyPageScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://terra-survey.com/"))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://terra-survey.com/terrapipe/privacy"))
                                 context.startActivity(intent)
                             }
                             .padding(horizontal = 16.dp, vertical = 16.dp), // 내부 터치 영역 및 정렬 패딩 통일
