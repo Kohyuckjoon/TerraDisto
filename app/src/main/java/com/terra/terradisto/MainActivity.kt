@@ -134,6 +134,7 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                 var showProjectErrorDialog by remember { mutableStateOf(false) }
                 var showLicenseErrorDialog by remember { mutableStateOf(false) }
                 var showLicenseSuccessDialog by remember { mutableStateOf(false) }
+                var isDistanceMeasurementReady by remember { mutableStateOf(false) }
 
                 val quickDistanceState = remember { mutableStateOf("0.000") }
 
@@ -236,6 +237,9 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         if (device != null && actualConnected) {
                             mainYetiController.setCurrentDevice(device)
                             mainYetiController.setListeners()
+                            isDistanceMeasurementReady = mainYetiController.isDistanceMeasurementReady
+                        } else {
+                            isDistanceMeasurementReady = false
                         }
                         delay(2000) // 2초마다 상태 체크하여 즉각 반응 보장
                     }
@@ -269,8 +273,11 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         if (device.connectionState == ch.leica.sdk.Devices.Device.ConnectionState.connected) {
                             mainYetiController.setCurrentDevice(device)
                             mainYetiController.setListeners()
+                            isDistanceMeasurementReady = mainYetiController.isDistanceMeasurementReady
+                        } else {
+                            isDistanceMeasurementReady = false
                         }
-                    }
+                    } ?: run { isDistanceMeasurementReady = false }
                 }
 
                 // 시스템 뒤로가기 버튼
@@ -452,8 +459,16 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                         )
                         "quick_survey" -> QuickSurveyScreen(
                             isDistoConnected = viewModel.isDistoConnected,
+                            isDistanceMeasurementReady = isDistanceMeasurementReady,
                             distoMeasuredDistance = quickDistanceState.value,
-                            onMeasureClick = { Thread { mainYetiController.sendDistanceCommand() }.start() },
+                            onMeasureClick = {
+                                Thread {
+                                    val error = mainYetiController.sendDistanceCommand()
+                                    if (error != null) {
+                                        Log.e("DISTO_MEASURE", "거리 측정 명령 실패: ${error.errorMessage}")
+                                    }
+                                }.start()
+                            },
                             onBackClick = { currentScreen = "main" }
                         )
                         "connect" -> NavigationHostWrapper(onBack = { currentScreen = "main" })
@@ -501,24 +516,39 @@ class MainActivity : FragmentActivity(), DistoStatusListener {
                                 onLicenseSaveClick = { insertedKey ->
                                     coroutineScope.launch {
                                         if (email.isNotEmpty() && password.isNotEmpty()) {
-                                            val isSuccess = registerDistoLicense(email, password, insertedKey)
-                                            if (isSuccess) {
-                                                hasServerLicense = insertedKey.isNotEmpty() // 빈값이면 라이선스 없음 처리
-                                                sharedPreferences.edit().putString("saved_license_key", insertedKey).apply()
-                                                currentSavedKey = insertedKey
-                                                showLicenseSuccessDialog = true // 성공 팝업 띄우기
+                                            if (insertedKey.isEmpty()) {
+                                                // 서버에서 라이선스 키를 다시 받아옴
+                                                try {
+                                                    val response = com.terra.terradisto.data.RetrofitClient.apiService.login(
+                                                        com.terra.terradisto.data.LoginRequest(email, password)
+                                                    )
+                                                    if (response.isSuccessful) {
+                                                        val body = response.body()
+                                                        if (body?.success == true && !body.licenseKey.isNullOrEmpty()) {
+                                                            val serverKey = body.licenseKey
+                                                            sharedPreferences.edit().putString("saved_license_key", serverKey).apply()
+                                                            currentSavedKey = serverKey
+                                                            hasServerLicense = true
+                                                        }
+                                                    }
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("LicenseRefresh", "라이선스 갱신 실패: ${e.message}")
+                                                }
                                             } else {
-                                                // 실패 시: 트리거 작동 -> MyPageScreen의 입력 필드 원복
-                                                licenseRefreshTrigger++
-
-                                                Toast.makeText(
-                                                    applicationContext,
-                                                    "유효하지 않은 라이선스입니다. 기존 키를 유지합니다.",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                                                // [수동 저장 로직]
+                                                val isSuccess = registerDistoLicense(email, password, insertedKey)
+                                                if (isSuccess) {
+                                                    hasServerLicense = true
+                                                    sharedPreferences.edit().putString("saved_license_key", insertedKey).apply()
+                                                    currentSavedKey = insertedKey
+                                                    showLicenseSuccessDialog = true
+                                                } else {
+                                                    licenseRefreshTrigger++
+                                                    android.widget.Toast.makeText(applicationContext, "유효하지 않은 라이선스입니다.", android.widget.Toast.LENGTH_SHORT).show()
+                                                }
                                             }
                                         } else {
-                                            Toast.makeText(applicationContext, "인증 정보가 없습니다. 다시 로그인해 주세요.", Toast.LENGTH_SHORT).show()
+                                            android.widget.Toast.makeText(applicationContext, "인증 정보가 없습니다.", android.widget.Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 }

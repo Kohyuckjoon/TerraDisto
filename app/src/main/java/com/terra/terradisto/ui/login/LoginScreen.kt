@@ -200,13 +200,19 @@ fun LoginScreen(
                 } else if (passwordInput.isEmpty()) {
                     errorMessage = "비밀번호를 입력해주세요"
                 } else {
-                    viewModel.login(idInput, passwordInput) { success ->
+                    viewModel.login(idInput, passwordInput) { success, licenseKey ->
                         if (success) {
                             sharedPreferences.edit().apply {
                                 putBoolean("is_auto_login", isAutoLoginEnabled)
 
                                 putString("saved_user_id", idInput)
                                 putString("saved_user_pw", passwordInput)
+
+                                if (licenseKey != null) {
+                                    putString("saved_license_key", licenseKey)
+                                } else {
+                                    remove("saved_license_key")
+                                }
                             }.apply()
                             
                             onLoginSuccess() // 로그인 성공 시, 메인 화면으로 이동

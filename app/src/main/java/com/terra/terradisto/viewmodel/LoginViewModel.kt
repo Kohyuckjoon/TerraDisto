@@ -16,7 +16,7 @@ class LoginViewModel : ViewModel() {
     var isLoading by mutableStateOf(false)
 
     // 로그인 함수
-    fun login(email: String, password: String, onResult: (Boolean) -> Unit) {
+    fun login(email: String, password: String, onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch {
             isLoading = true
             try {
@@ -24,16 +24,21 @@ class LoginViewModel : ViewModel() {
                 val response = RetrofitClient.apiService.login(LoginRequest(email, password))
 
                 if (response.isSuccessful) {
-                    // 200 (ok일때)
-                    onResult(true)
+                    val body = response.body()
+                    if (body?.success == true) {
+                        onResult(true, body.licenseKey?.trim()?.takeIf { it.isNotEmpty() })
+                    } else {
+                        errorMessage = body?.message ?: "로그인에 실패했어요."
+                        onResult(false, null)
+                    }
                 } else {
                     // 403, 429등 실패
                     errorMessage = "로그인 실패 : {${response.code()} 에러가 발생했어요. / ${response.message()} }"
-                    onResult(false)
+                    onResult(false, null)
                 }
             } catch (e: Exception) {
                 errorMessage = "서버 연결에 실패했어요.."
-                onResult(false)
+                onResult(false, null)
             } finally {
                 isLoading = false
             }

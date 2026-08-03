@@ -73,6 +73,16 @@ fun MyPageScreen(
 //        lastValidKey = currentLicenseKey
 //    }
 
+    LaunchedEffect(currentLicenseKey, hasServerLicense, refreshTrigger) {
+        licenseInput = currentLicenseKey
+        lastValidKey = currentLicenseKey
+
+        // 라이선스가 등록되어 있는 상태 일때 키가 비어있다면 자동으로 라이선스 정보를 다시 가져오도록 요청
+        if (hasServerLicense && currentLicenseKey.isEmpty()) {
+            onLicenseSaveClick("")
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

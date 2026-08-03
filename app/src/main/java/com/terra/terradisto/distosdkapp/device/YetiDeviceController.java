@@ -24,6 +24,10 @@ import ch.leica.sdk.commands.response.Response;
 import ch.leica.sdk.commands.response.ResponseBLEMeasurements;
 import ch.leica.sdk.commands.response.ResponsePlain;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 public class YetiDeviceController
         extends BleDeviceController
         implements UpdateController.UpdateProcessListener {
@@ -286,16 +290,65 @@ public class YetiDeviceController
 
         super.setCurrentDevice(device);
 
-        if (deviceChanged) {
-            cachedDistanceCommand = null;
-            cachedDistanceDeviceId = newDeviceId;
+        Types.Commands resolvedCommand = resolveDistanceCommand(device);
+        boolean commandChanged = cachedDistanceCommand != resolvedCommand;
+        cachedDistanceCommand = resolvedCommand;
+        cachedDistanceDeviceId = newDeviceId;
 
+        if (deviceChanged || commandChanged) {
             Log.d(
                     CLASSTAG,
-                    "setCurrentDevice: device changed. reset cachedDistanceCommand. deviceId = "
+                    "setCurrentDevice: resolved distance command. deviceId = "
                             + newDeviceId
+                            + ", deviceType = "
+                            + (device != null ? device.getDeviceType() : null)
+                            + ", command = "
+                            + cachedDistanceCommand
             );
         }
+    }
+
+    private Types.Commands resolveDistanceCommand(Device device) {
+        if (device == null || device.getConnectionState() != Device.ConnectionState.connected) {
+            return null;
+        }
+
+        String[] availableCommands = device.getAvailableCommands();
+        if (availableCommands == null || availableCommands.length == 0) {
+            Log.w(CLASSTAG, "resolveDistanceCommand: device has no available commands");
+            return null;
+        }
+
+        Set<String> supportedCommands = new HashSet<>(Arrays.asList(availableCommands));
+        boolean supportsDistance = supportedCommands.contains(Types.Commands.Distance.name());
+        boolean supportsDistanceDC = supportedCommands.contains(Types.Commands.DistanceDC.name());
+
+        if (supportsDistance && !supportsDistanceDC) {
+            return Types.Commands.Distance;
+        }
+
+        if (supportsDistanceDC && !supportsDistance) {
+            return Types.Commands.DistanceDC;
+        }
+
+        if (supportsDistance && supportsDistanceDC) {
+            return Types.DeviceType.Yeti.equals(device.getDeviceType())
+                    ? Types.Commands.DistanceDC
+                    : Types.Commands.Distance;
+        }
+
+        Log.w(
+                CLASSTAG,
+                "resolveDistanceCommand: distance measurement is not supported. availableCommands = "
+                        + supportedCommands
+        );
+        return null;
+    }
+
+    public synchronized boolean isDistanceMeasurementReady() {
+        return currentDevice != null
+                && currentDevice.getConnectionState() == Device.ConnectionState.connected
+                && cachedDistanceCommand != null;
     }
 
     public synchronized void resetDistanceCommandCache() {
@@ -315,60 +368,18 @@ public class YetiDeviceController
             return errorSendingCommand;
         }
 
-        // 이미 성공한 명령어가 있으면 그 명령어만 바로 사용
-        if (cachedDistanceCommand != null) {
-            Log.d(CLASSTAG, METHODTAG + " use cached command = " + cachedDistanceCommand);
-
-            ErrorObject error = tryDistanceCommand(cachedDistanceCommand, true);
-
-            // 캐시된 명령어가 성공하면 바로 끝
-            if (error == null) {
-                return null;
-            }
-
-            // 캐시된 명령어가 실패하면 캐시 초기화
-            // 연결 장비가 바뀌었거나 SDK 상태가 꼬였을 가능성 대비
-            Log.w(CLASSTAG, METHODTAG + " cached command failed. reset cache.");
-            cachedDistanceCommand = null;
-        }
-
-        // 최초 1회 또는 캐시 실패 시에만 둘 다 시도
-        Types.Commands[] commands = new Types.Commands[] {
-                Types.Commands.Distance,
-                Types.Commands.DistanceDC
-        };
-
-        ErrorObject lastError = null;
-
-        for (Types.Commands command : commands) {
-            ErrorObject error = tryDistanceCommand(command, false);
-
-            if (error == null) {
-                cachedDistanceCommand = command;
-
-                Log.d(
-                        CLASSTAG,
-                        METHODTAG + " cache success command = " + cachedDistanceCommand
-                );
-
-                return null;
-            }
-
-            lastError = error;
-        }
-
-        if (lastError != null) {
-            errorSendingCommand = lastError;
-        } else {
+        if (!isDistanceMeasurementReady()) {
             errorSendingCommand =
                     ErrorController.createErrorObject(
                             COMMAND_ERROR_CODE,
-                            "Both Distance and DistanceDC failed"
+                            "Connected device does not support distance measurement"
                     );
+            Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
+            return errorSendingCommand;
         }
 
-        Logs.logErrorObject(CLASSTAG, METHODTAG, errorSendingCommand);
-        return errorSendingCommand;
+        Log.d(CLASSTAG, METHODTAG + " use resolved command = " + cachedDistanceCommand);
+        return tryDistanceCommand(cachedDistanceCommand, true);
     }
 
     private ErrorObject tryDistanceCommand(Types.Commands command, boolean fromCache) {

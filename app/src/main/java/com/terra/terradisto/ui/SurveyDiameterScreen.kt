@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -662,10 +664,16 @@ fun SurveyDiameterScreen(
                         ) {
                             OutlinedTextField(
                                 value = lidSize,
-                                onValueChange = {},
-                                placeholder = { Text("예: 6m", color = Color(0xFF8B95A1)) },
+                                onValueChange = { input ->
+                                    if (input.matches(Regex("""\d*\.?\d*"""))) {
+                                        lidSize = input
+                                    }
+                                },
+                                placeholder = { Text("예: 3", color = Color(0xFF8B95A1)) },
+                                suffix = { Text("m", color = Color(0xFF4E5968)) },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = Color(0xFFF2F4F6),
                                     unfocusedContainerColor = Color(0xFFF2F4F6),
@@ -674,14 +682,14 @@ fun SurveyDiameterScreen(
                                 ),
                                 singleLine = true
                             )
-                            MeasureButton(
-                                onClick = {
-                                    activeTarget = ActiveTarget.LID_SIZE
-                                    isMeasuring = !isMeasuring
-                                    if (isMeasuring) onMeasureClick()
-                                },
-                                isMeasuring = (isMeasuring && activeTarget == ActiveTarget.LID_SIZE)
-                            )
+//                            MeasureButton(
+//                                onClick = {
+//                                    activeTarget = ActiveTarget.LID_SIZE
+//                                    isMeasuring = !isMeasuring
+//                                    if (isMeasuring) onMeasureClick()
+//                                },
+//                                isMeasuring = (isMeasuring && activeTarget == ActiveTarget.LID_SIZE)
+//                            )
                         }
                     }
 
@@ -727,11 +735,17 @@ fun SurveyDiameterScreen(
                     ) {
                         OutlinedTextField(
                             value = topiValue,
-                            onValueChange = { topiValue = it },
-                            placeholder = { Text("예: 1.5m", color = Color(0xFF8B95A1)) },
+                            onValueChange = { input ->
+                                if (input.matches(Regex("""\d*\.?\d*"""))) {
+                                    topiValue = input
+                                }
+                            },
+                            placeholder = { Text("예: 1.5", color = Color(0xFF8B95A1)) },
+                            suffix = { Text("m", color = Color(0xFF4E5968)) },
                             // weight(1f)를 주되, 버튼이 밀리지 않도록 Row 범위 내에서 처리
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = Color(0xFFF2F4F6),
@@ -859,10 +873,16 @@ fun SurveyDiameterScreen(
                                 ) {
                                     OutlinedTextField(
                                         value = chamberDiameter,
-                                        onValueChange = { chamberDiameter = it },
-                                        placeholder = { Text("지름 (m)", color = Color(0xFF8B95A1)) },
+                                        onValueChange = { input ->
+                                            if (input.matches(Regex("""\d*\.?\d*"""))) {
+                                                chamberDiameter = input
+                                            }
+                                        },
+                                        placeholder = { Text("예: 1.5", color = Color(0xFF8B95A1)) },
+                                        suffix = { Text("m", color = Color(0xFF4E5968)) },
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(12.dp),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                         singleLine = true,
                                         colors = OutlinedTextFieldDefaults.colors(
                                             focusedContainerColor = Color(0xFFF2F4F6),
@@ -1213,10 +1233,12 @@ fun PipeItemForm(
             verticalAlignment = Alignment.Top // 1. 상단 라벨 기준으로 시작
         ) {
             PipeInputField(
-                "관경 (m)",
-                "예: 2.0 m",
-                pipe.diameter,
-                Modifier.weight(1f)
+                label = "관경 (m)",
+                placeholder = "예: 2.0",
+                value = pipe.diameter,
+                modifier = Modifier.weight(1f),
+                numericOnly = true,
+                unit = "m"
             ) { onUpdate(pipe.copy(diameter = it)) }
 
             // 2. 버튼이 입력창의 TextField 부분과 정렬되도록 top 패딩(라벨+간격)을 강제로 줌
@@ -1255,6 +1277,8 @@ fun PipeInputField(
     placeholder: String,
     value: String,
     modifier: Modifier = Modifier,
+    numericOnly: Boolean = false,
+    unit: String? = null,
     onValueChange: ((String) -> Unit)? = null
 ) {
     Column(modifier = modifier.padding(vertical = 8.dp)) {
@@ -1262,10 +1286,22 @@ fun PipeInputField(
         Spacer(modifier = Modifier.height(6.dp))
         OutlinedTextField(
             value = value,
-            onValueChange = { onValueChange?.invoke(it) },
+            onValueChange = { input ->
+                if (!numericOnly || input.matches(Regex("""\d*\.?\d*"""))) {
+                    onValueChange?.invoke(input)
+                }
+            },
             placeholder = { Text(placeholder, color = Color(0xFFB0B8C1)) },
+            suffix = unit?.let { unitText ->
+                { Text(unitText, color = Color(0xFF4E5968)) }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
+            keyboardOptions = if (numericOnly) {
+                KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            } else {
+                KeyboardOptions.Default
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color(0xFFF2F4F6),
                 unfocusedContainerColor = Color(0xFFF2F4F6),

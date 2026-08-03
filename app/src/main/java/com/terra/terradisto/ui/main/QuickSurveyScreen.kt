@@ -49,6 +49,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun QuickSurveyScreen(
     isDistoConnected: Boolean,
+    isDistanceMeasurementReady: Boolean,
     distoMeasuredDistance: String,
     onMeasureClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -225,12 +226,12 @@ fun QuickSurveyScreen(
 
                     // 2. 거리 측정 메인 버튼
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        val buttonColor = if (isDistoConnected) Color(0xFF3182F6) else Color(0xFFADB5BD)
+                        val buttonColor = if (isDistanceMeasurementReady) Color(0xFF3182F6) else Color(0xFFADB5BD)
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
                                 .background(buttonColor, CircleShape)
-                                .clickable(enabled = isDistoConnected) {
+                                .clickable(enabled = isDistanceMeasurementReady) {
                                     // 기존에 사용하시던 하드웨어 전송 명령 함수(`startMeasurementFor(...)` 등)를 호출하도록 연동합니다.
 //                                    onMeasureClick()
                                     if (!isMeasuring) {
@@ -263,6 +264,37 @@ fun QuickSurveyScreen(
                             fontSize = 13.sp,
                             color = Color(0xFF191F28),
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // 3. 단일 측정 버튼
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val isSingleMeasureEnabled = isDistanceMeasurementReady && !isMeasuring
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(
+                                    color = if (isSingleMeasureEnabled) Color.White else Color(0xFFE5E8EB),
+                                    shape = CircleShape
+                                )
+                                .clickable(enabled = isSingleMeasureEnabled) {
+                                    onMeasureClick()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.FlashOn,
+                                contentDescription = "단일 측정",
+                                tint = if (isSingleMeasureEnabled) Color(0xFF3182F6) else Color(0xFFADB5BD),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "측정",
+                            fontSize = 12.sp,
+                            color = if (isSingleMeasureEnabled) Color(0xFF6B7684) else Color(0xFFADB5BD),
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -610,6 +642,7 @@ fun PreviewQuickSurveyScreen() {
         // 프리뷰 렌더링에 필요한 더미 값들과 빈 콜백 블록을 명시적으로 매핑해 줍니다.
         QuickSurveyScreen(
             isDistoConnected = true,
+            isDistanceMeasurementReady = true,
             distoMeasuredDistance = "1.523", // 프리뷰용 기본 가상 데이터
             onMeasureClick = {},            // 프리뷰용 빈 액션 콜백
             onBackClick = {}
