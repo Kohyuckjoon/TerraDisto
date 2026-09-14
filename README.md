@@ -1,20 +1,42 @@
 # 🧭 Disto Application
 
 **프로젝트명:** Disto Application  
-**내용:** 배관용 파이프의 규격과 재질을 측정할 수 있도록 제작된 앱  
+**내용:** 배관용 파이프의 규격과 재질을 측정할 수 있도록 제작된 앱
 
 ---
 
 ## 📅 세부 사항
-- **프로젝트 기간:** 2025.09.15 ~ 2025.10.31
-- **기획 & 디자인:** 2025.09.16 ~ 2025.09.26
-- **코드 구현:** 2025.09.29 ~ 2025.10.31
-- **테스트 및 미비 사항 동작 구현:** 2025.10.09 ~ 
+- **프로젝트 기간:** 2026.07.13 ~ 2026.8.31
+- **기획 & 디자인:** 2026.07.13 ~ 2026.07.24
+- **코드 구현:** 2026.07.27 ~ 2026.08.24
+- **테스트 및 미비 사항 동작 구현:** 2026.08.24 ~ 2026.09
 - ** 주 기능 :
 -  1) Disto D5 기기와 BLE 통신을 통해서 측정된 데이터 값을 받아와서(SDK 활용) 화면에 표시
    2) 화면에 표시된 값을 Room DB에 저장(insert table)
    3) 저장된 값을 앱 화면에서 확인(select table)
    4) 저장된 값을 내보내기 기능을 통해 엑셀 파일로 추출
+
+## 🛠️ 기술 스택
+- Android 단일 앱이며 Kotlin과 Java를 함께 사용합니다.
+- 최소 Android 9(API 28), Target/Compile SDK 36, JVM 11 환경입니다.
+- Gradle 8.11.1, Android Gradle Plugin 8.10.0, Kotlin 1.9.25를 사용합니다.
+- 주요 화면은 Jetpack Compose와 Material 3로 구현되어 있습니다.
+- DISTO 장치 관련 화면은 Java, Fragment, XML 레이아웃으로 구현되어 있습니다.
+- Compose 화면에서 기존 Fragment를 불러오는 하이브리드 UI 구조입니다.
+- 화면 이동은 currentScreen 문자열 상태와 AnimatedContent로 처리합니다.
+- 상태 관리는 ViewModel, Compose State, StateFlow, Coroutine을 사용합니다.
+- Room DB에 프로젝트와 프로젝트별 맨홀 측정 데이터를 저장합니다.
+- 측정 데이터는 조회, 수정, 삭제할 수 있으며 Flow로 화면에 반영됩니다.
+- 로그인과 라이선스 등록은 Retrofit 및 Gson을 통해 서버 API와 통신합니다.
+- 로그인 정보, 자동 로그인 여부, 라이선스 키는 SharedPreferences에 저장합니다.
+- Leica DISTO SDK는 로컬 AAR 파일로 포함되어 있습니다.
+- BLE와 Wi-Fi 방식으로 DISTO 장치를 검색하고 연결합니다.
+- 연결 상태와 측정 결과는 Listener/Callback 방식으로 전달됩니다.
+- 거리 측정 명령을 1초 간격으로 반복하고 최대 거리값을 최종값으로 사용합니다.
+- 맨홀, 챔버, 뚜껑, 관로 방향·관경·높이 등의 측량 정보를 저장합니다.
+- Apache POI와 MediaStore를 이용해 측정 이력을 XLSX 파일로 내보냅니다.
+- JUnit 4, AndroidX JUnit, Espresso 테스트 환경이 설정되어 있습니다.
+- 현재 assembleDebug 빌드가 정상적으로 완료됩니다.
 
 ---
 
@@ -25,7 +47,7 @@
 
 ## 🏠 메인화면
 > - 메인화면에서는 다음과 같이 전체 메뉴 버튼이 구현되어 있습니다.
-> - UI 구현 : XML, Material
+> - UI 구현 : Jetpack Compose, Material 3
 <img width="300" alt="DistoSurvey_1" src="https://github.com/user-attachments/assets/0af711de-3a71-4944-8edc-bf14e4b3eb00" />
 <img width="300" alt="DistoSurvey_2" src="https://github.com/user-attachments/assets/6e62d1ab-72a7-4d3f-9dfa-b7b520dfabb4" />
 
@@ -53,7 +75,7 @@
 
 
 ## 🔗 Bluetooth 연결하기
-> - Leica사에서 제공하는 SDK를 활용해서 측량 데이터를 화면에 표시할 수 있도록 구현했습니다.
+> - Leica사에서 제공하는 SDK를 활용해서 jetpack compose/kotlin을 활용해서 레거시 코드를 개선하였습니다.
 > - Leica사에서 제공하는 SDK 내용중 블루투스는 BLE 방식을 사용합니다.
 > **Disto 장비 연결 (Leica SDK 활용)**
 <img width="300" alt="DistoSurvey_3" src="https://github.com/user-attachments/assets/ecb9789b-2740-4e81-8f03-c1520f30293d" />
@@ -110,12 +132,4 @@
 
 
 
-
-
-
-
-
-
-
-
-
+감사합니다.
