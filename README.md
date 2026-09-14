@@ -6,8 +6,10 @@
 **개선 이유:** 레거시 Java/XML 기반 코드의 유지보수 부담을 줄이고, Jetpack Compose 기반의 선언형 UI로 전환하여 개발 생산성과 화면 확장성을 높이기 위함. 
 또한 Google Play의 앱 번들(AAB) 배포 정책 대응 및 배포 파일 최적화를 위해 APK에서 AAB 방식으로 전환.
 
-
 https://play.google.com/store/apps/details?id=com.terra.terradisto&hl=ko
+
+<img width="1462" height="806" alt="image" src="https://github.com/user-attachments/assets/c9abd191-ef3f-4307-ac0f-1b19a567ec53" />
+
 ---
 
 ## 📅 세부 사항
