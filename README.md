@@ -35,8 +35,6 @@
 - 거리 측정 명령을 1초 간격으로 반복하고 최대 거리값을 최종값으로 사용합니다.
 - 맨홀, 챔버, 뚜껑, 관로 방향·관경·높이 등의 측량 정보를 저장합니다.
 - Apache POI와 MediaStore를 이용해 측정 이력을 XLSX 파일로 내보냅니다.
-- JUnit 4, AndroidX JUnit, Espresso 테스트 환경이 설정되어 있습니다.
-- 현재 assembleDebug 빌드가 정상적으로 완료됩니다.
 
 ---
 
@@ -81,7 +79,6 @@
 <img width="300" alt="DistoSurvey_3" src="https://github.com/user-attachments/assets/ecb9789b-2740-4e81-8f03-c1520f30293d" />
 
 
-
 ## 📏 간편 & 정밀 측정하기
 > - 측정에 필요한 데이터 입력 및 측정 진행  
 > - **배관 타입:** Spinner 사용  
@@ -91,9 +88,12 @@
 > - **저장 방식:** Room DB
 
 ## 간편 측정
+> - 거리 측정을 1초 간격으로 반복과 수동으로 측정이 가능하고 최대 거리값을 최종값으로 사용할 수 있습니다.
 <img width="300" alt="DistoSurvey_4" src="https://github.com/user-attachments/assets/6f34a222-634b-46ab-b7d6-ad3f008b0973" />
 
 ## 정밀 측정
+> - 거리 측정을 1초 간격으로 반복하고 최대 거리값을 최종값으로 사용할 수 있습니다.
+> - 맨홀, 챔버, 뚜껑, 관리 방향 관경 높이 등의 측량 정보를 저장합니다.
 <img width="300" alt="DistoSurvey_11" src="https://github.com/user-attachments/assets/1667101a-92a8-4621-b40b-ddb82ddfcff4" />
 <img width="300" alt="DistoSurvey_10" src="https://github.com/user-attachments/assets/215a640d-1167-4858-9af2-e0ecc254a6b7" />
 <img width="300" alt="DistoSurvey_9" src="https://github.com/user-attachments/assets/8141cedc-83da-4718-9bce-87801deef1df" />
@@ -103,8 +103,7 @@
 
 ## 💾 측정 저장을 위한 최종 확인
 ## ✅ 측정 저장 완료
-
-> - 측정 데이터 저장을 위해서 최종 확인이 진행되는 화면입니다.
+> - 측정 데이터 저장을 위해서 최종 확인이 진행됩니다.
 > - 도엽번호와 배관 갯수, 측정 진행한 관경, 수기 입력 값과 재질을 입력할 수 있습니다.
 > - 관경 측정 버튼 클릭 시 Disto 장비에서 관경 측정이 진행됩니다. 측정이 된 최대값이 관경 측정 값과 측정값 확정 사이에 Input Box에 자동으로 입력이 되게 됩니다.
 > - 측정값 확정 버튼을 누르면 첫번째부터 순차적으로 확정된 데이터 값이 입력이 옮겨지게 됩니다.
@@ -121,13 +120,14 @@
 
 ## 삭제
 <img width="300" alt="DistoSurvey_6-1" src="https://github.com/user-attachments/assets/61723e8b-163e-4aab-8255-e38306c80e03" />
-> - 엑셀 내보내기 완료 알림 및 엑셀 파일 확인
 
 
-## 마이페이지
-<img width="300" alt="DistoSurvey_13" src="https://github.com/user-attachments/assets/f38efb0c-1cd8-4786-b73b-3bc8d8ea59b3" />
-
+## 마이페이지 / 로그인 정보
 ## 라이선스 등록 완료
+> - 마이페이지는 Terra Survey에 가입되어 있는 회원 정보 기준으로 로그인이 가능합니다.
+> - 로그인과 라이선스 등록은 Retrofit 및 Gson을 통해서 서버 API와 통신을 하고 있습니다.
+> - 로그인 정보, 자동 로그인 여부, 라이선스 키는 SharedPreferences에 저장합니다.
+<img width="300" alt="DistoSurvey_13" src="https://github.com/user-attachments/assets/f38efb0c-1cd8-4786-b73b-3bc8d8ea59b3" />
 <img width="300" alt="DistoSurvey_14" src="https://github.com/user-attachments/assets/41a1d077-bc32-486d-8ee3-6be8efbb2d99" />
 
 
